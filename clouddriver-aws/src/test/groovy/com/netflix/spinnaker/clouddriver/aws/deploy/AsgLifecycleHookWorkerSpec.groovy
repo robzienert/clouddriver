@@ -15,9 +15,22 @@
  */
 package com.netflix.spinnaker.clouddriver.aws.deploy
 
+import com.amazonaws.auth.policy.Condition
+import com.amazonaws.auth.policy.Policy
+import com.amazonaws.auth.policy.Principal
+import com.amazonaws.auth.policy.Resource
+import com.amazonaws.auth.policy.Statement
+import com.amazonaws.auth.policy.Statement.Effect
+import com.amazonaws.auth.policy.actions.SNSActions
+import com.amazonaws.auth.policy.actions.SQSActions
 import com.amazonaws.services.autoscaling.AmazonAutoScaling
 import com.amazonaws.services.autoscaling.model.PutLifecycleHookRequest
 import com.amazonaws.services.autoscaling.model.PutNotificationConfigurationRequest
+import com.amazonaws.services.sns.AmazonSNS
+import com.amazonaws.services.sns.model.GetTopicAttributesResult
+import com.amazonaws.services.sqs.AmazonSQS
+import com.amazonaws.services.sqs.model.CreateQueueResult
+import com.amazonaws.services.sqs.model.GetQueueAttributesResult
 import com.netflix.spinnaker.clouddriver.aws.model.AmazonAsgLifecycleHook
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
@@ -29,8 +42,12 @@ import spock.lang.Subject
 class AsgLifecycleHookWorkerSpec extends Specification {
 
   def autoScaling = Mock(AmazonAutoScaling)
+  def amazonSQS = Mock(AmazonSQS)
+  def amazonSNS = Mock(AmazonSNS)
   def amazonClientProvider = Stub(AmazonClientProvider) {
     getAutoScaling(_, 'us-east-1', true) >> autoScaling
+    getAmazonSQS(_, 'us-east-1') >> amazonSQS
+    getAmazonSNS(_, 'us-east-1') >> amazonSNS
   }
 
   int count = 0
@@ -130,5 +147,60 @@ class AsgLifecycleHookWorkerSpec extends Specification {
         .withNotificationTypes('autoscaling:EC2_INSTANCE_LAUNCH_ERROR')
         .withTopicARN('arn:aws:sns:us-east-1:123456789012:my-notification-sns-topic')
     )
+  }
+
+  def 'should ensure notification infrastructure exists for cluster'() {
+    given:
+    def lifecycleHooks = [
+      new AmazonAsgLifecycleHook(
+        lifecycleTransition: AmazonAsgLifecycleHook.Transition.EC2InstanceLaunchError,
+      )
+    ]
+
+    when:
+    asgLifecycleHookWorker.ensureNotificationInfraExists(Mock(Task), lifecycleHooks, 'us-east-1', 'foo-test-v000')
+
+    then:
+    1 * amazonSQS.createQueue('spinnaker-autoscalingNotifications-foo-test') >> new CreateQueueResult(queueUrl: 'https://queue-url')
+    1 * amazonSQS.getQueueAttributes('https://queue-url', ['Policy']) >> new GetQueueAttributesResult(attributes: ['Policy': sqsPolicy])
+    1 * amazonSQS.setQueueAttributes('https://queue-url', ['Policy': expectedSqsPolicy])
+    1 * amazonSNS.createTopic('spinnaker-autoscalingNotifications-foo-test')
+    1 * amazonSNS.getTopicAttributes(snsArn) >> {
+      new GetTopicAttributesResult(attributes: ['Policy': snsPolicy])
+    }
+    1 * amazonSNS.setTopicAttributes(snsArn, 'Policy', expectedSnsPolicy)
+    1 * amazonSNS.subscribe(snsArn, 'sqs', sqsArn)
+
+    lifecycleHooks[0].notificationTargetARN == snsArn
+
+    where:
+    sqsArn = 'arn:aws:sqs:us-east-1:123456789012:spinnaker-autoscalingNotifications-foo-test'
+    snsArn = 'arn:aws:sns:us-east-1:123456789012:spinnaker-autoscalingNotifications-foo-test'
+
+    // Existing policies: Statement created by external system and an outdated spinnaker-managed statement
+    sqsPolicy = new Policy().withStatements(
+      new Statement(Effect.Allow).withId('someone-elses-sqs-statement'),
+      new Statement(Effect.Deny).withId(AsgLifecycleHookWorker.MANAGED_POLICY_STATEMENT_ID)
+    ).toJson()
+    snsPolicy = new Policy().withStatements(
+      new Statement(Effect.Allow).withId('someone-elses-sns-statement'),
+      new Statement(Effect.Deny).withId(AsgLifecycleHookWorker.MANAGED_POLICY_STATEMENT_ID)
+    ).toJson()
+
+    expectedSqsPolicy = new Policy().withStatements(
+      new Statement(Effect.Allow).withId('someone-elses-sqs-statement'),
+      new Statement(Effect.Allow).withId(AsgLifecycleHookWorker.MANAGED_POLICY_STATEMENT_ID)
+        .withActions(SQSActions.SendMessage)
+        .withPrincipals(Principal.All)
+        .withResources(new Resource(sqsArn))
+        .withConditions(new Condition().withType('ArnEquals').withConditionKey('aws:SourceArn').withValues(snsArn))
+    ).toJson()
+    expectedSnsPolicy = new Policy().withStatements(
+      new Statement(Effect.Allow).withId('someone-elses-sns-statement'),
+      new Statement(Effect.Allow).withId(AsgLifecycleHookWorker.MANAGED_POLICY_STATEMENT_ID)
+        .withActions(SNSActions.Publish)
+        .withPrincipals(new Principal('123456789012'))
+        .withResources(new Resource(snsArn))
+    ).toJson()
   }
 }

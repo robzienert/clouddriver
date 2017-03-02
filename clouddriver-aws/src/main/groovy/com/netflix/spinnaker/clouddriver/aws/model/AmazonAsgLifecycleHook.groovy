@@ -37,7 +37,10 @@ class AmazonAsgLifecycleHook {
   static enum Transition {
     EC2InstanceLaunching("autoscaling:EC2_INSTANCE_LAUNCHING", TransitionType.LIFECYCLE),
     EC2InstanceTerminating("autoscaling:EC2_INSTANCE_TERMINATING", TransitionType.LIFECYCLE),
-    EC2InstanceLaunchError("autoscaling:EC2_INSTANCE_LAUNCH_ERROR", TransitionType.NOTIFICATION)
+    EC2InstanceLaunchError("autoscaling:EC2_INSTANCE_LAUNCH_ERROR", TransitionType.NOTIFICATION),
+    EC2InstanceTerminateError("autoscaling:EC2_INSTANCE_TERMINATE_ERROR", TransitionType.NOTIFICATION),
+    EC2InstanceLaunch("autoscaling:EC2_INSTANCE_LAUNCH", TransitionType.NOTIFICATION),
+    EC2InstanceTerminate("autoscaling:EC2_INSTANCE_TERMINATE", TransitionType.NOTIFICATION)
 
     final String value
     final TransitionType type

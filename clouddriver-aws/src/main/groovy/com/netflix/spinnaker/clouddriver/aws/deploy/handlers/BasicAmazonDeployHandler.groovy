@@ -35,6 +35,8 @@ import com.netflix.spinnaker.clouddriver.aws.deploy.ops.loadbalancer.LoadBalance
 import com.netflix.spinnaker.clouddriver.aws.deploy.ops.loadbalancer.UpsertAmazonLoadBalancerResult
 import com.netflix.spinnaker.clouddriver.aws.deploy.scalingpolicy.ScalingPolicyCopier
 import com.netflix.spinnaker.clouddriver.aws.model.AmazonAsgLifecycleHook
+import com.netflix.spinnaker.clouddriver.aws.model.AmazonAsgLifecycleHook.Transition
+import com.netflix.spinnaker.clouddriver.aws.model.AmazonAsgLifecycleHook.TransitionType
 import com.netflix.spinnaker.clouddriver.aws.model.AmazonBlockDevice
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
 import com.netflix.spinnaker.clouddriver.aws.services.RegionScopedProviderFactory
@@ -62,6 +64,8 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
   private static Task getTask() {
     TaskRepository.threadLocalTask.get()
   }
+
+  private static final String LIFECYCLE_NOTIFICATIONS_TAG = "spinnaker:lifecycleNotifications"
 
   private final RegionScopedProviderFactory regionScopedProviderFactory
   private final AccountCredentialsRepository accountCredentialsRepository
@@ -229,6 +233,8 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
         description.blockDevices = convertBlockDevices(ami.blockDeviceMappings)
       }
 
+      copySourceLifecycleNotificationTags(description)
+
       def autoScalingWorker = new AutoScalingWorker(
         application: description.application,
         region: region,
@@ -380,11 +386,49 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
 
   @VisibleForTesting
   @PackageScope
+  void copySourceLifecycleNotificationTags(BasicAmazonDeployDescription description) {
+    // Optimization: Adding ASG-scoped lifecycle notifications as tags so
+    // we don't need to perform a describeLifecycleHooks for every ASG in
+    // our caching agents, which would surely blow out API limits.
+    boolean addedLifecycleTag = false
+    def notificationLifecycleHooks = description.lifecycleHooks?.findAll { it.lifecycleTransition.type == TransitionType.NOTIFICATION }
+    if (!notificationLifecycleHooks?.empty) {
+      description.tags[LIFECYCLE_NOTIFICATIONS_TAG] = notificationLifecycleHooks.collect { it.lifecycleTransition }.join(",")
+      addedLifecycleTag = true
+    }
+    if (description.tags?.containsKey(LIFECYCLE_NOTIFICATIONS_TAG) && !addedLifecycleTag) {
+      def lifecycleHooks = description.tags[LIFECYCLE_NOTIFICATIONS_TAG].split(",").collect {
+        new AmazonAsgLifecycleHook(lifecycleTransition: Transition.valueOfName(it))
+      }
+      if (description.lifecycleHooks?.empty) {
+        description.lifecycleHooks = lifecycleHooks
+      } else {
+        description.lifecycleHooks.addAll(lifecycleHooks)
+      }
+    }
+  }
+
+  @VisibleForTesting
+  @PackageScope
   void createLifecycleHooks(Task task,
                             RegionScopedProviderFactory.RegionScopedProvider targetRegionScopedProvider,
                             NetflixAmazonCredentials targetCredentials,
                             BasicAmazonDeployDescription description,
                             String targetAsgName) {
+    def asgNotificationLifecycles = description.lifecycleHooks?.findAll { it.lifecycleTransition.type == TransitionType.NOTIFICATION }
+    if (!asgNotificationLifecycles?.empty) {
+      // We only want to create notification infrastructure for ASG-scoped
+      // lifecycle hooks.
+      try {
+        targetRegionScopedProvider.asgLifecycleHookWorker.ensureNotificationInfraExists(
+          task, asgNotificationLifecycles, targetRegionScopedProvider.region, targetAsgName
+        )
+      } catch (AmazonServiceException e) {
+        task.updateStatus BASE_PHASE, "Failed creating lifecycle notification infrastructure for " +
+          "${targetRegionScopedProvider.amazonCredentials.name}/${targetRegionScopedProvider.region}/${targetAsgName} (cause: ${e.message})"
+        return
+      }
+    }
 
     List<AmazonAsgLifecycleHook> lifecycleHooks = getLifecycleHooks(targetCredentials, description)
     if (lifecycleHooks.size() > 0) {

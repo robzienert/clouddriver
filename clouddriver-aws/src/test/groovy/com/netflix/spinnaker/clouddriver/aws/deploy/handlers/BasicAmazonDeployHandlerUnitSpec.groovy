@@ -689,6 +689,7 @@ class BasicAmazonDeployHandlerUnitSpec extends Specification {
     null        | null                     | "{{application}}IamRole" || "{{application}}IamRole"
   }
 
+
   private Collection<AmazonBlockDevice> bD(String instanceType) {
     return BlockDeviceConfig.getBlockDevicesForInstanceType(deployDefaults, instanceType)
   }
