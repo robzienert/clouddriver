@@ -49,6 +49,8 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
 
   DynoJedisClient client
 
+  Jedis directClient
+
   CacheMetrics cacheMetrics = Mock(CacheMetrics)
 
   @Override
@@ -150,20 +152,20 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
     ((WriteableCache) cache).merge('foo', data)
 
     then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 1, 1, 0)
+    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 0, 1, 0, 0)
 
     when: //second write, hash matches
     ((WriteableCache) cache).merge('foo', data)
 
     then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 0, 0, 1, 0, 0, 0, 0, 0, 0)
+    1 * cacheMetrics.merge('test', 'foo', 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
 
     when: //third write, disable hashing
-    pool.resource.withCloseable { Jedis j -> j.set('test:foo:hashes.disabled', 'true')}
+    directClient.withCloseable { Jedis j -> j.set('test:foo:hashes.disabled', 'true')}
     ((WriteableCache) cache).merge('foo', data)
 
     then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 1, 1, 0)
+    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 0, 1, 0, 0)
   }
 
   def 'should not write an item if it is unchanged'() {
@@ -174,30 +176,13 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
     ((WriteableCache) cache).merge('foo', data)
 
     then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 1, 1, 0)
+    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 0, 1, 0, 0)
 
     when:
     ((WriteableCache) cache).merge('foo', data)
 
     then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 0, 0, 1, 0, 0, 0, 0, 0, 0)
-  }
-
-  def 'should merge #mergeCount items at a time'() {
-    when:
-    cache.mergeAll('foo', items)
-
-    then:
-
-    fullMerges * cacheMetrics.merge('test', 'foo', mergeCount, mergeCount, 0, 0, 0, 2, 1, 0, 1, 0)
-    finalMergeCount * cacheMetrics.merge('test', 'foo', finalMerge, finalMerge, 0, 0, 0, 2, 1, 0, 1, 0)
-
-    where:
-    mergeCount << [ 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 100, 101, 131 ]
-    items = (0..100).collect { createData("blerp-$it") }
-    fullMerges = items.size() / mergeCount
-    finalMerge = items.size() % mergeCount
-    finalMergeCount = finalMerge > 0 ? 1 : 0
+    1 * cacheMetrics.merge('test', 'foo', 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
   }
 
   private static class Bean {
@@ -211,9 +196,9 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
   }
 
   private void initLocalDynoClusterClient() {
-    def jedis = new Jedis('192.168.99.100', 22122)
-    jedis.flushAll()
-    jedis.close()
+    directClient = new Jedis('192.168.99.100', 22122)
+    directClient.flushAll()
+    directClient.close()
 
     // This setup assumes that you're running a single-node Dynomite cluster via the Docker image.
     def localHost = new Host(Optional.ofNullable(System.getProperty('dyno.address')).orElse('192.168.99.100'), 8102, 'localrack', Status.Up)

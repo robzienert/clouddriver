@@ -34,6 +34,7 @@ import com.netflix.spinnaker.cats.redis.cluster.DefaultNodeStatusProvider
 import com.netflix.spinnaker.cats.redis.cluster.NodeStatusProvider
 import com.netflix.spinnaker.clouddriver.core.RedisConfigurationProperties
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -45,7 +46,7 @@ import redis.clients.jedis.JedisPool
 import java.util.concurrent.TimeUnit
 
 @Configuration
-@ConditionalOnProperty('redis.connection')
+@ConditionalOnExpression('${redis.connection?:false}')
 @EnableConfigurationProperties(RedisConfigurationProperties)
 class RedisCacheConfig {
   @Bean

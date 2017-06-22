@@ -24,6 +24,7 @@ import redis.clients.jedis.MultiKeyCommands;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+// TODO rz - register PostDestruct that calls stopClient()
 public class DynomiteClientDelegate implements RedisClientDelegate {
 
   private final DynoJedisClient client;

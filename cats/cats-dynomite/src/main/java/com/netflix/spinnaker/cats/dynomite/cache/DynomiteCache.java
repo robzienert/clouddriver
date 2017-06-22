@@ -20,7 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.netflix.dyno.jedis.DynoJedisClient;
 import com.netflix.spinnaker.cats.cache.CacheData;
-import com.netflix.spinnaker.cats.dynomite.DynomiteClientDelegate;
+import com.netflix.spinnaker.cats.redis.RedisClientDelegate;
 import com.netflix.spinnaker.cats.redis.cache.AbstractRedisCache;
 import com.netflix.spinnaker.cats.redis.cache.RedisCacheOptions;
 import redis.clients.jedis.ScanParams;
@@ -40,7 +40,7 @@ import java.util.TreeMap;
 
 public class DynomiteCache extends AbstractRedisCache {
 
-  public DynomiteCache(String prefix, DynomiteClientDelegate dynomiteClientDelegate, ObjectMapper objectMapper, RedisCacheOptions options, CacheMetrics cacheMetrics) {
+  public DynomiteCache(String prefix, RedisClientDelegate dynomiteClientDelegate, ObjectMapper objectMapper, RedisCacheOptions options, CacheMetrics cacheMetrics) {
     super(prefix, dynomiteClientDelegate, objectMapper, options, cacheMetrics);
   }
 
@@ -77,6 +77,7 @@ public class DynomiteCache extends AbstractRedisCache {
     }
 
     int saddOperations = 0;
+    int setOperations = 0;
     int msetOperations = 0;
     int hmsetOperations = 0;
     int expireOperations = 0;
@@ -90,15 +91,14 @@ public class DynomiteCache extends AbstractRedisCache {
         saddOperations++;
       }
 
-      // TODO rz - refactor so we're just working with k/v maps of what to set
+      // TODO rz - refactor so we're just working with k/v maps?
       for (List<String> keys : Lists.partition(keysToSet, options.getMaxMsetSize())) {
         // TODO dynomite - support mset
         int kn = keys.size() / 2;
         for (int i = 0; i < kn; i++) {
           client.set(keys.get(i), keys.get(i+1));
+          setOperations++;
         }
-//        client.mset(Arrays.copyOf(keys.toArray(), keys.size(), String[].class));
-//        msetOperations++;
       }
 
       if (!relationshipNames.isEmpty()) {
@@ -130,6 +130,7 @@ public class DynomiteCache extends AbstractRedisCache {
       skippedWrites,
       updatedHashes.size(),
       saddOperations,
+      setOperations,
       msetOperations,
       hmsetOperations,
       0,
@@ -150,11 +151,14 @@ public class DynomiteCache extends AbstractRedisCache {
     int delOperations = 0;
     int hdelOperations = 0;
     int sremOperations = 0;
+
+    // multi-key commands don't work in dynomite, we gotta make individual calls.
     DynoJedisClient client = (DynoJedisClient) redisClientDelegate.getCommandsClient();
-    for (List<String> delPartition : Lists.partition(delKeys, options.getMaxDelSize())) {
-      client.del(delPartition.toArray(new String[delPartition.size()]));
+    for (String key : delKeys) {
+      client.del(key);
       delOperations++;
-      client.hdel(hashesId(type), (String[]) delPartition.toArray());
+      client.hdel(hashesId(type), key);
+      hdelOperations++;
     }
 
     for (List<String> idPartition : Lists.partition(identifiers, options.getMaxDelSize())) {

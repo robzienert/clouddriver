@@ -58,6 +58,7 @@ public abstract class AbstractRedisCache implements WriteableCache {
                        int hashMatches,
                        int hashUpdates,
                        int saddOperations,
+                       int setOperations,
                        int msetOperations,
                        int hmsetOperations,
                        int pipelineOperations,

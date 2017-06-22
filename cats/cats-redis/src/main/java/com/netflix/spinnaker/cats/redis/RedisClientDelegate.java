@@ -22,6 +22,9 @@ import redis.clients.jedis.MultiKeyCommands;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+// TODO rz - I'm not super stoked on this interface. Debating actually creating
+// an interface that looks like Jedis we could just transparently pretend is either
+// dynomite or jedis. Unfortunately, it seems dynomite you don't close clients...?
 public interface RedisClientDelegate {
 
   JedisCommands getCommandsClient();

@@ -27,7 +27,6 @@ public class JedisClientDelegate implements RedisClientDelegate {
 
   JedisSource jedisSource;
 
-
   @Override
   public JedisCommands getCommandsClient() {
     return jedisSource.getJedis();
