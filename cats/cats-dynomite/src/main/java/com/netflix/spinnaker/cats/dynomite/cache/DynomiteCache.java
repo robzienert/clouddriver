@@ -18,13 +18,10 @@ package com.netflix.spinnaker.cats.dynomite.cache;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.netflix.dyno.jedis.DynoJedisClient;
 import com.netflix.spinnaker.cats.cache.CacheData;
 import com.netflix.spinnaker.cats.redis.RedisClientDelegate;
 import com.netflix.spinnaker.cats.redis.cache.AbstractRedisCache;
 import com.netflix.spinnaker.cats.redis.cache.RedisCacheOptions;
-import redis.clients.jedis.ScanParams;
-import redis.clients.jedis.ScanResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,9 +31,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DynomiteCache extends AbstractRedisCache {
 
@@ -76,49 +73,49 @@ public class DynomiteCache extends AbstractRedisCache {
       }
     }
 
-    int saddOperations = 0;
-    int setOperations = 0;
-    int msetOperations = 0;
-    int hmsetOperations = 0;
-    int expireOperations = 0;
+    AtomicInteger saddOperations = new AtomicInteger();
+    AtomicInteger setOperations = new AtomicInteger();
+    AtomicInteger msetOperations = new AtomicInteger();
+    AtomicInteger hmsetOperations = new AtomicInteger();
+    AtomicInteger expireOperations = new AtomicInteger();
     if (!keysToSet.isEmpty()) {
-      DynoJedisClient client = (DynoJedisClient) redisClientDelegate.getCommandsClient();
-      for (List<String> idPart : Iterables.partition(idSet, options.getMaxSaddSize())) {
-        final String[] ids = idPart.toArray(new String[idPart.size()]);
-        client.sadd(allOfTypeReindex(type), ids);
-        saddOperations++;
-        client.sadd(allOfTypeId(type), ids);
-        saddOperations++;
-      }
-
-      // TODO rz - refactor so we're just working with k/v maps?
-      for (List<String> keys : Lists.partition(keysToSet, options.getMaxMsetSize())) {
-        // TODO dynomite - support mset
-        int kn = keys.size() / 2;
-        for (int i = 0; i < kn; i++) {
-          client.set(keys.get(i), keys.get(i+1));
-          setOperations++;
+      redisClientDelegate.withCommandsClient(client -> {
+        for (List<String> idPart : Iterables.partition(idSet, options.getMaxSaddSize())) {
+          final String[] ids = idPart.toArray(new String[idPart.size()]);
+          client.sadd(allOfTypeReindex(type), ids);
+          saddOperations.incrementAndGet();
+          client.sadd(allOfTypeId(type), ids);
+          saddOperations.incrementAndGet();
         }
-      }
 
-      if (!relationshipNames.isEmpty()) {
-        for (List<String> relNamesPart : Iterables.partition(relationshipNames, options.getMaxSaddSize())) {
-          client.sadd(allRelationshipsId(type), relNamesPart.toArray(new String[relNamesPart.size()]));
-          saddOperations++;
+        for (List<String> keys : Lists.partition(keysToSet, options.getMaxMsetSize())) {
+          int kn = keys.size() / 2;
+          for (int i = 0; i < kn; i = i + 2) {
+            client.set(keys.get(i), keys.get(i+1));
+            setOperations.incrementAndGet();
+          }
         }
-      }
 
-      if (!updatedHashes.isEmpty()) {
-        for (List<String> hashPart : Iterables.partition(updatedHashes.keySet(), options.getMaxHmsetSize())) {
-          client.hmset(hashesId(type), updatedHashes.subMap(hashPart.get(0), true, hashPart.get(hashPart.size() - 1), true));
-          hmsetOperations++;
+        if (!relationshipNames.isEmpty()) {
+          for (List<String> relNamesPart : Iterables.partition(relationshipNames, options.getMaxSaddSize())) {
+            client.sadd(allRelationshipsId(type), relNamesPart.toArray(new String[relNamesPart.size()]));
+            saddOperations.incrementAndGet();
+          }
         }
-      }
 
-      for (Map.Entry<String, Integer> ttlEntry : ttlSecondsByKey.entrySet()) {
-        client.expire(ttlEntry.getKey(), ttlEntry.getValue());
-      }
-      expireOperations += ttlSecondsByKey.size();
+        if (!updatedHashes.isEmpty()) {
+          for (List<String> hashPart : Iterables.partition(updatedHashes.keySet(), options.getMaxHmsetSize())) {
+            client.hmset(hashesId(type), updatedHashes.subMap(hashPart.get(0), true, hashPart.get(hashPart.size() - 1), true));
+            hmsetOperations.incrementAndGet();
+          }
+        }
+
+        for (Map.Entry<String, Integer> ttlEntry : ttlSecondsByKey.entrySet()) {
+          client.expire(ttlEntry.getKey(), ttlEntry.getValue());
+        }
+        expireOperations.addAndGet(ttlSecondsByKey.size());
+
+      });
     }
 
     cacheMetrics.merge(
@@ -129,12 +126,12 @@ public class DynomiteCache extends AbstractRedisCache {
       relationshipNames.size(),
       skippedWrites,
       updatedHashes.size(),
-      saddOperations,
-      setOperations,
-      msetOperations,
-      hmsetOperations,
+      saddOperations.get(),
+      setOperations.get(),
+      msetOperations.get(),
+      hmsetOperations.get(),
       0,
-      expireOperations
+      expireOperations.get()
     );
   }
 
@@ -148,26 +145,26 @@ public class DynomiteCache extends AbstractRedisCache {
       delKeys.add(attributesId(type, id));
     }
 
-    int delOperations = 0;
-    int hdelOperations = 0;
-    int sremOperations = 0;
+    AtomicInteger delOperations = new AtomicInteger();
+    AtomicInteger hdelOperations = new AtomicInteger();
+    AtomicInteger sremOperations = new AtomicInteger();
 
-    // multi-key commands don't work in dynomite, we gotta make individual calls.
-    DynoJedisClient client = (DynoJedisClient) redisClientDelegate.getCommandsClient();
-    for (String key : delKeys) {
-      client.del(key);
-      delOperations++;
-      client.hdel(hashesId(type), key);
-      hdelOperations++;
-    }
+    redisClientDelegate.withCommandsClient(client -> {
+      for (String key : delKeys) {
+        client.del(key);
+        delOperations.incrementAndGet();
+        client.hdel(hashesId(type), key);
+        hdelOperations.incrementAndGet();
+      }
 
-    for (List<String> idPartition : Lists.partition(identifiers, options.getMaxDelSize())) {
-      String[] ids = idPartition.toArray(new String[idPartition.size()]);
-      client.srem(allOfTypeId(type), ids);
-      sremOperations++;
-      client.srem(allOfTypeReindex(type), ids);
-      sremOperations++;
-    }
+      for (List<String> idPartition : Lists.partition(identifiers, options.getMaxDelSize())) {
+        String[] ids = idPartition.toArray(new String[idPartition.size()]);
+        client.srem(allOfTypeId(type), ids);
+        sremOperations.incrementAndGet();
+        client.srem(allOfTypeReindex(type), ids);
+        sremOperations.incrementAndGet();
+      }
+    });
 
     cacheMetrics.evict(
       prefix,
@@ -175,26 +172,9 @@ public class DynomiteCache extends AbstractRedisCache {
       identifiers.size(),
       delKeys.size(),
       delKeys.size(),
-      delOperations,
-      hdelOperations,
-      sremOperations
+      delOperations.get(),
+      hdelOperations.get(),
+      sremOperations.get()
     );
-  }
-
-  @Override
-  protected Set<String> scanMembers(String setKey, Optional<String> glob) {
-    DynoJedisClient client = (DynoJedisClient) redisClientDelegate.getCommandsClient();
-    final Set<String> matches = new HashSet<>();
-    final ScanParams scanParams = new ScanParams().count(options.getScanSize());
-    glob.ifPresent(scanParams::match);
-    String cursor = "0";
-    while (true) {
-      final ScanResult<String> scanResult = client.sscan(setKey, cursor, scanParams);
-      matches.addAll(scanResult.getResult());
-      cursor = scanResult.getStringCursor();
-      if ("0".equals(cursor)) {
-        return matches;
-      }
-    }
   }
 }

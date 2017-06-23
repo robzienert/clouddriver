@@ -19,6 +19,8 @@ import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.MultiKeyCommands;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.commands.RedisPipeline;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -27,9 +29,8 @@ public class JedisClientDelegate implements RedisClientDelegate {
 
   JedisSource jedisSource;
 
-  @Override
-  public JedisCommands getCommandsClient() {
-    return jedisSource.getJedis();
+  public JedisClientDelegate(JedisSource jedisSource) {
+    this.jedisSource = jedisSource;
   }
 
   @Override
@@ -47,11 +48,6 @@ public class JedisClientDelegate implements RedisClientDelegate {
   }
 
   @Override
-  public MultiKeyCommands getMultiClient() {
-    return jedisSource.getJedis();
-  }
-
-  @Override
   public <R> R withMultiClient(Function<MultiKeyCommands, R> f) {
     try (Jedis jedis = jedisSource.getJedis()) {
       return f.apply(jedis);
@@ -66,11 +62,6 @@ public class JedisClientDelegate implements RedisClientDelegate {
   }
 
   @Override
-  public BinaryJedisCommands getBinaryClient() {
-    return jedisSource.getJedis();
-  }
-
-  @Override
   public <R> R withBinaryClient(Function<BinaryJedisCommands, R> f) {
     try (Jedis jedis = jedisSource.getJedis()) {
       return f.apply(jedis);
@@ -81,6 +72,39 @@ public class JedisClientDelegate implements RedisClientDelegate {
   public void withBinaryClient(Consumer<BinaryJedisCommands> f) {
     try (Jedis jedis = jedisSource.getJedis()) {
       f.accept(jedis);
+    }
+  }
+
+  @Override
+  public void withPipeline(Consumer<RedisPipeline> f) {
+    try (Jedis jedis = jedisSource.getJedis()) {
+      f.accept(jedis.pipelined());
+    }
+  }
+
+  @Override
+  public <R> R withPipeline(Function<RedisPipeline, R> f) {
+    try (Jedis jedis = jedisSource.getJedis()) {
+      return f.apply(jedis.pipelined());
+    }
+  }
+
+  @Override
+  public boolean supportsMultiKeyPipelines() {
+    return true;
+  }
+
+  @Override
+  public void withMultiKeyPipeline(Consumer<Pipeline> f) {
+    try (Jedis jedis = jedisSource.getJedis()) {
+      f.accept(jedis.pipelined());
+    }
+  }
+
+  @Override
+  public <R> R withMultiKeyPipeline(Function<Pipeline, R> f) {
+    try (Jedis jedis = jedisSource.getJedis()) {
+      return f.apply(jedis.pipelined());
     }
   }
 }

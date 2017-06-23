@@ -18,6 +18,7 @@ package com.netflix.spinnaker.cats.redis;
 
 import redis.clients.jedis.Jedis;
 
+@Deprecated
 public interface JedisSource {
     Jedis getJedis();
 }

@@ -52,7 +52,8 @@ class DynomiteConfigurationProperties {
     @NotNull
     String rack = 'localrack'
 
-    String datacenter
+    @NotNull
+    String datacenter = 'localrac'
 
     Long token = 1000000L
   }

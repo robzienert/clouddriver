@@ -18,30 +18,33 @@ package com.netflix.spinnaker.cats.redis;
 import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.MultiKeyCommands;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.commands.RedisPipeline;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-// TODO rz - I'm not super stoked on this interface. Debating actually creating
-// an interface that looks like Jedis we could just transparently pretend is either
-// dynomite or jedis. Unfortunately, it seems dynomite you don't close clients...?
 public interface RedisClientDelegate {
-
-  JedisCommands getCommandsClient();
 
   <R> R withCommandsClient(Function<JedisCommands, R> f);
 
   void withCommandsClient(Consumer<JedisCommands> f);
 
-  MultiKeyCommands getMultiClient();
-
   <R> R withMultiClient(Function<MultiKeyCommands, R> f);
 
   void withMultiClient(Consumer<MultiKeyCommands> f);
 
-  BinaryJedisCommands getBinaryClient();
-
   <R> R withBinaryClient(Function<BinaryJedisCommands, R> f);
 
   void withBinaryClient(Consumer<BinaryJedisCommands> f);
+
+  void withPipeline(Consumer<RedisPipeline> f);
+
+  <R> R withPipeline(Function<RedisPipeline, R> f);
+
+  boolean supportsMultiKeyPipelines();
+
+  void withMultiKeyPipeline(Consumer<Pipeline> f);
+
+  <R> R withMultiKeyPipeline(Function<Pipeline, R> f);
 }

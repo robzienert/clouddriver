@@ -17,6 +17,7 @@
 
 package com.netflix.spinnaker.clouddriver.core.agent
 
+import com.netflix.spinnaker.cats.redis.JedisClientDelegate
 import com.netflix.spinnaker.cats.redis.JedisPoolSource
 import com.netflix.spinnaker.clouddriver.core.provider.CoreProvider
 import com.netflix.spinnaker.kork.jedis.EmbeddedRedis
@@ -34,9 +35,11 @@ class CleanupPendingOnDemandCachesAgentSpec extends Specification {
 
   def jedisSource = new JedisPoolSource(embeddedRedis.pool as JedisPool)
 
+  def redisClientDelegate = new JedisClientDelegate(jedisSource)
+
   def "should cleanup onDemand:members set for a provider"() {
     given:
-    def agent = new CleanupPendingOnDemandCachesAgent(jedisSource, Stub(ApplicationContext))
+    def agent = new CleanupPendingOnDemandCachesAgent(redisClientDelegate, Stub(ApplicationContext))
     def providers = [
         new CoreProvider([])
     ]

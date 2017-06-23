@@ -40,7 +40,8 @@ import java.util.concurrent.TimeUnit
 @Configuration
 @Import([
   RedisCacheConfig,
-  DynomiteCacheConfig
+  DynomiteCacheConfig,
+  JedisCacheConfig
 ])
 class CacheConfig {
   @Bean

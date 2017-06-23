@@ -27,15 +27,14 @@ import com.netflix.spinnaker.cats.cache.CacheFilter;
 import com.netflix.spinnaker.cats.cache.DefaultCacheData;
 import com.netflix.spinnaker.cats.cache.WriteableCache;
 import com.netflix.spinnaker.cats.redis.RedisClientDelegate;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 
 import java.io.IOException;
-import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -91,8 +90,6 @@ public abstract class AbstractRedisCache implements WriteableCache {
     }
   }
 
-  private static final String HASH_CHARSET = "UTF8";
-
   private static final TypeReference<Map<String, Object>> ATTRIBUTES = new TypeReference<Map<String, Object>>() {
   };
   private static final TypeReference<List<String>> RELATIONSHIPS = new TypeReference<List<String>>() {
@@ -113,8 +110,6 @@ public abstract class AbstractRedisCache implements WriteableCache {
   }
 
   abstract protected void mergeItems(String type, Collection<CacheData> items);
-
-  abstract protected Set<String> scanMembers(String setKey, Optional<String> glob);
 
   abstract protected void evictItems(String type, List<String> identifiers, Collection<String> allRelationships);
 
@@ -220,17 +215,21 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return scanMembers(setKey, Optional.empty());
   }
 
-  protected byte[] stringToBytes(String string) {
-    return string.getBytes(Charset.forName(HASH_CHARSET));
-  }
-
-  protected byte[][] stringsToBytes(Collection<String> strings) {
-    final byte[][] results = new byte[strings.size()][];
-    int i = 0;
-    for (String string : strings) {
-      results[i++] = stringToBytes(string);
-    }
-    return results;
+  private Set<String> scanMembers(String setKey, Optional<String> glob) {
+    return redisClientDelegate.withCommandsClient(client -> {
+      final Set<String> matches = new HashSet<>();
+      final ScanParams scanParams = new ScanParams().count(options.getScanSize());
+      glob.ifPresent(scanParams::match);
+      String cursor = "0";
+      while (true) {
+        final ScanResult<String> scanResult = client.sscan(setKey, cursor, scanParams);
+        matches.addAll(scanResult.getResult());
+        cursor = scanResult.getStringCursor();
+        if ("0".equals(cursor)) {
+          return matches;
+        }
+      }
+    });
   }
 
   protected static class MergeOp {
@@ -310,7 +309,7 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return new MergeOp(cacheData.getRelationships().keySet(), keysToSet, hashesToSet, skippedWrites);
   }
 
-  protected List<String> getKeys(String type, Collection<CacheData> cacheDatas) {
+  private List<String> getKeys(String type, Collection<CacheData> cacheDatas) {
     final Collection<String> keys = new HashSet<>();
     for (CacheData cacheData : cacheDatas) {
       if (!cacheData.getAttributes().isEmpty()) {
@@ -325,14 +324,7 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return new ArrayList<>(keys);
   }
 
-  protected boolean isHashingDisabled(String type) {
-    if (!options.isHashingEnabled()) {
-      return true;
-    }
-    return redisClientDelegate.withCommandsClient(c -> { return c.exists(hashesDisabled(type)); });
-  }
-
-  protected List<String> getHashValues(List<String> hashKeys, String hashesId) {
+  private List<String> getHashValues(List<String> hashKeys, String hashesId) {
     final List<String> hashValues = new ArrayList<>(hashKeys.size());
     redisClientDelegate.withCommandsClient(c -> {
       for (List<String> hashPart : Lists.partition(hashKeys, options.getMaxHmgetSize())) {
@@ -368,7 +360,16 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return isHashingDisabled(type) ? Collections.emptyMap() : hashes;
   }
 
-  protected Collection<CacheData> getItems(String type, List<String> ids, List<String> knownRels) {
+  private boolean isHashingDisabled(String type) {
+     if (!options.isHashingEnabled()) {
+        return true;
+     }
+     return redisClientDelegate.withCommandsClient(client -> {
+       return client.exists(hashesDisabled(type));
+     });
+   }
+
+  private Collection<CacheData> getItems(String type, List<String> ids, List<String> knownRels) {
     final int singleResultSize = knownRels.size() + 1;
 
     final List<String> keysToGet = new ArrayList<>(singleResultSize * ids.size());
@@ -407,7 +408,7 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return results;
   }
 
-  protected CacheData extractItem(String id, List<String> keyResult, List<String> knownRels) {
+  private CacheData extractItem(String id, List<String> keyResult, List<String> knownRels) {
     if (keyResult.get(0) == null) {
       return null;
     }
@@ -443,7 +444,7 @@ public abstract class AbstractRedisCache implements WriteableCache {
     return String.format("%s:%s:hashes", prefix, type);
   }
 
-  protected String hashesDisabled(String type) {
+  private String hashesDisabled(String type) {
     return String.format("%s:%s:hashes.disabled", prefix, type);
   }
 
@@ -457,30 +458,5 @@ public abstract class AbstractRedisCache implements WriteableCache {
 
   protected String allOfTypeReindex(String type) {
     return String.format("%s:%s:members.2", prefix, type);
-  }
-
-  /**
-   * Comparator for lexical sort of byte arrays to enable a partitioning a
-   * sorted map of hash keys.
-   * <p>
-   * This is essentially String.compareTo implemented on a byte array.
-   */
-  public static class ByteArrayComparator implements Comparator<byte[]>, Serializable {
-    private static final long serialVersionUID = 42424242421L;
-    @Override
-    public int compare(byte[] v1, byte[] v2) {
-      final int len1 = v1.length;
-      final int len2 = v2.length;
-      final int lim = Math.min(v1.length, v2.length);
-
-      for (int i = 0; i < lim; i++) {
-        byte b1 = v1[i];
-        byte b2 = v2[i];
-        if (b1 != b2) {
-          return b1 - b2;
-        }
-      }
-      return len1 - len2;
-    }
   }
 }

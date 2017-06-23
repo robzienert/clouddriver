@@ -35,9 +35,12 @@ import com.netflix.spinnaker.cats.redis.cache.RedisCacheOptions
 import com.netflix.spinnaker.kork.jedis.EmbeddedRedis
 import redis.clients.jedis.Jedis
 import spock.lang.AutoCleanup
+import spock.lang.IgnoreIf
 import spock.lang.Shared
 import spock.lang.Unroll
 
+// TODO rz - Figure out how to get dyno client to connect w/ an embedded redis
+@IgnoreIf({ System.getProperty("dyno.address") == null })
 class DynomiteCacheSpec extends WriteableCacheSpec {
 
   static int MAX_MSET_SIZE = 2
@@ -55,7 +58,6 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
 
   @Override
   Cache getSubject() {
-    // TODO rz - Figure out how to get dyno client connecting to local redis
 //    if (System.getProperty('dyno.hostname') == null) {
 //      initEmbeddedRedisClient()
 //    } else {
@@ -72,8 +74,6 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
       cacheMetrics
     )
   }
-
-
 
   @Unroll
   def 'attribute datatype handling #description'() {
@@ -144,30 +144,6 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
     thrown(IllegalArgumentException)
   }
 
-  def 'should ignore hashes if hashes disabled'() {
-    setup:
-    def data = createData('blerp', [a: 'b'])
-
-    when: //initial write
-    ((WriteableCache) cache).merge('foo', data)
-
-    then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 0, 1, 0, 0)
-
-    when: //second write, hash matches
-    ((WriteableCache) cache).merge('foo', data)
-
-    then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
-
-    when: //third write, disable hashing
-    directClient.withCloseable { Jedis j -> j.set('test:foo:hashes.disabled', 'true')}
-    ((WriteableCache) cache).merge('foo', data)
-
-    then:
-    1 * cacheMetrics.merge('test', 'foo', 1, 1, 0, 0, 1, 2, 1, 0, 1, 0, 0)
-  }
-
   def 'should not write an item if it is unchanged'() {
     setup:
     def data = createData('blerp', [a: 'b'])
@@ -232,6 +208,7 @@ class DynomiteCacheSpec extends WriteableCacheSpec {
         .withTokenSupplier(tokenSupplier)
         .setLocalRack('localrack')
         .setLocalDataCenter('localrac')
+        .setPoolShutdownDelay(2)
     )
       .build()
 

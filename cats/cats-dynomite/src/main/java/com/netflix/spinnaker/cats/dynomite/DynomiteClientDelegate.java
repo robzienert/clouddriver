@@ -20,22 +20,18 @@ import com.netflix.spinnaker.cats.redis.RedisClientDelegate;
 import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.MultiKeyCommands;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.commands.RedisPipeline;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-// TODO rz - register PostDestruct that calls stopClient()
 public class DynomiteClientDelegate implements RedisClientDelegate {
 
   private final DynoJedisClient client;
 
   public DynomiteClientDelegate(DynoJedisClient client) {
     this.client = client;
-  }
-
-  @Override
-  public JedisCommands getCommandsClient() {
-    return client;
   }
 
   @Override
@@ -49,11 +45,6 @@ public class DynomiteClientDelegate implements RedisClientDelegate {
   }
 
   @Override
-  public MultiKeyCommands getMultiClient() {
-    return client;
-  }
-
-  @Override
   public <R> R withMultiClient(Function<MultiKeyCommands, R> f) {
     return f.apply(client);
   }
@@ -61,11 +52,6 @@ public class DynomiteClientDelegate implements RedisClientDelegate {
   @Override
   public void withMultiClient(Consumer<MultiKeyCommands> f) {
     f.accept(client);
-  }
-
-  @Override
-  public BinaryJedisCommands getBinaryClient() {
-    return client;
   }
 
   @Override
@@ -78,4 +64,28 @@ public class DynomiteClientDelegate implements RedisClientDelegate {
     f.accept(client);
   }
 
+  @Override
+  public void withPipeline(Consumer<RedisPipeline> f) {
+    f.accept(client.pipelined());
+  }
+
+  @Override
+  public <R> R withPipeline(Function<RedisPipeline, R> f) {
+    return f.apply(client.pipelined());
+  }
+
+  @Override
+  public boolean supportsMultiKeyPipelines() {
+    return false;
+  }
+
+  @Override
+  public void withMultiKeyPipeline(Consumer<Pipeline> f) {
+    throw new UnsupportedOperationException("Dynomite does not support multi-key pipelined operations");
+  }
+
+  @Override
+  public <R> R withMultiKeyPipeline(Function<Pipeline, R> f) {
+    throw new UnsupportedOperationException("Dynomite does not support multi-key pipelined operations");
+  }
 }

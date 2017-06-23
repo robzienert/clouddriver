@@ -18,7 +18,7 @@ package com.netflix.spinnaker.clouddriver.core
 
 import com.netflix.spinnaker.cats.agent.ExecutionInstrumentation
 import com.netflix.spinnaker.cats.agent.NoopExecutionInstrumentation
-import com.netflix.spinnaker.cats.redis.JedisSource
+import com.netflix.spinnaker.cats.redis.RedisClientDelegate
 import com.netflix.spinnaker.clouddriver.cache.CacheConfig
 import com.netflix.spinnaker.clouddriver.cache.NoopOnDemandCacheUpdater
 import com.netflix.spinnaker.clouddriver.cache.OnDemandCacheUpdater
@@ -221,10 +221,10 @@ class CloudDriverConfig {
   }
 
   @Bean
-  @ConditionalOnExpression('${redis.connection?:false}')
-  CoreProvider coreProvider(JedisSource jedisSource, ApplicationContext applicationContext) {
+  @ConditionalOnExpression('${redis.connection != null || dynomite.enabled:false}')
+  CoreProvider coreProvider(RedisClientDelegate redisClientDelegate, ApplicationContext applicationContext) {
     return new CoreProvider([
-      new CleanupPendingOnDemandCachesAgent(jedisSource, applicationContext)
+      new CleanupPendingOnDemandCachesAgent(redisClientDelegate, applicationContext)
     ])
   }
 
