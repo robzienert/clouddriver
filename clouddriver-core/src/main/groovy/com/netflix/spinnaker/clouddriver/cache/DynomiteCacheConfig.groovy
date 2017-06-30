@@ -66,30 +66,24 @@ class DynomiteCacheConfig {
     new ConnectionPoolConfigurationImpl(dynomiteConfigurationProperties.applicationName)
   }
 
-  @Bean(destroyMethod = "stopClient") @Primary
-  @ConditionalOnBean(DiscoveryClient.class)
-  DynoJedisClient dynoJedisClient(DiscoveryClient discoveryClient, DynomiteConfigurationProperties dynomiteConfigurationProperties) {
-    new DynoJedisClient.Builder()
-      .withApplicationName(dynomiteConfigurationProperties.applicationName)
-      .withDynomiteClusterName(dynomiteConfigurationProperties.clusterName)
-      .withDiscoveryClient(discoveryClient)
-      .build()
-  }
+  @Bean(destroyMethod = "stopClient")
+  DynoJedisClient dynoJedisClient(DynomiteConfigurationProperties dynomiteConfigurationProperties, ConnectionPoolConfigurationImpl connectionPoolConfiguration, Optional<DiscoveryClient> discoveryClient) {
+    def builder = new DynoJedisClient.Builder()
+        .withApplicationName(dynomiteConfigurationProperties.applicationName)
+        .withDynomiteClusterName(dynomiteConfigurationProperties.clusterName)
 
-  @Bean(destroyMethod = "stopClient") @Primary
-  @ConditionalOnMissingBean(DiscoveryClient.class)
-  DynoJedisClient dynoJedisClient(DynomiteConfigurationProperties dynomiteConfigurationProperties, ConnectionPoolConfigurationImpl connectionPoolConfiguration) {
-    connectionPoolConfiguration
-      .withTokenSupplier(new StaticTokenMapSupplier(dynomiteConfigurationProperties.dynoHostTokens))
-      .setLocalDataCenter(dynomiteConfigurationProperties.localDataCenter)
-      .setLocalRack(dynomiteConfigurationProperties.localRack)
+    discoveryClient.map({ dc ->
+      builder.withDiscoveryClient(dc)
+    }).orElseGet({
+      connectionPoolConfiguration
+          .withTokenSupplier(new StaticTokenMapSupplier(dynomiteConfigurationProperties.dynoHostTokens))
+          .setLocalDataCenter(dynomiteConfigurationProperties.localDataCenter)
+          .setLocalRack(dynomiteConfigurationProperties.localRack)
 
-    new DynoJedisClient.Builder()
-      .withApplicationName(dynomiteConfigurationProperties.applicationName)
-      .withDynomiteClusterName(dynomiteConfigurationProperties.clusterName)
-      .withHostSupplier(new StaticHostSupplier(dynomiteConfigurationProperties.dynoHosts))
-      .withCPConfig(connectionPoolConfiguration)
-      .build()
+      builder
+          .withHostSupplier(new StaticHostSupplier(dynomiteConfigurationProperties.dynoHosts))
+          .withCPConfig(connectionPoolConfiguration)
+    }).build()
   }
 
   @Bean
