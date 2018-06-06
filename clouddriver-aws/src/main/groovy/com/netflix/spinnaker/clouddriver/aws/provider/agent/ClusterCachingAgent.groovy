@@ -40,27 +40,29 @@ import com.netflix.frigga.Names
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.cats.agent.AccountAware
 import com.netflix.spinnaker.cats.agent.AgentDataType
+import com.netflix.spinnaker.cats.agent.CacheResult
 import com.netflix.spinnaker.cats.agent.CachingAgent
+import com.netflix.spinnaker.cats.agent.DefaultCacheResult
+import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.cache.DefaultCacheData
 import com.netflix.spinnaker.cats.cache.RelationshipCacheFilter
 import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.aws.AmazonCloudProvider
 import com.netflix.spinnaker.clouddriver.aws.data.ArnUtils
+import com.netflix.spinnaker.clouddriver.aws.data.Keys
+import com.netflix.spinnaker.clouddriver.aws.provider.AwsProvider
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.EddaTimeoutConfig
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
 import com.netflix.spinnaker.clouddriver.cache.OnDemandAgent
 import com.netflix.spinnaker.clouddriver.cache.OnDemandMetricsSupport
-import com.netflix.spinnaker.clouddriver.aws.data.Keys
+import com.netflix.spinnaker.clouddriver.tags.EntityTagger
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static com.netflix.spinnaker.cats.agent.AgentDataType.Authority.*
+import static com.netflix.spinnaker.cats.agent.AgentDataType.Authority.AUTHORITATIVE
+import static com.netflix.spinnaker.cats.agent.AgentDataType.Authority.INFORMATIVE
 import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.*
-import com.netflix.spinnaker.cats.agent.CacheResult
-import com.netflix.spinnaker.cats.agent.DefaultCacheResult
-import com.netflix.spinnaker.cats.cache.CacheData
-import com.netflix.spinnaker.clouddriver.aws.provider.AwsProvider
 
 class ClusterCachingAgent implements CachingAgent, OnDemandAgent, AccountAware, DriftMetric {
   final Logger log = LoggerFactory.getLogger(getClass())
@@ -87,13 +89,16 @@ class ClusterCachingAgent implements CachingAgent, OnDemandAgent, AccountAware, 
 
   final OnDemandMetricsSupport metricsSupport
 
+  final EntityTagger entityTagger
+
   ClusterCachingAgent(AmazonCloudProvider amazonCloudProvider,
                       AmazonClientProvider amazonClientProvider,
                       NetflixAmazonCredentials account,
                       String region,
                       ObjectMapper objectMapper,
                       Registry registry,
-                      EddaTimeoutConfig eddaTimeoutConfig) {
+                      EddaTimeoutConfig eddaTimeoutConfig,
+                      EntityTagger entityTagger) {
     this.amazonCloudProvider = amazonCloudProvider
     this.amazonClientProvider = amazonClientProvider
     this.account = account
@@ -102,6 +107,7 @@ class ClusterCachingAgent implements CachingAgent, OnDemandAgent, AccountAware, 
     this.registry = registry
     this.eddaTimeoutConfig = eddaTimeoutConfig
     this.metricsSupport = new OnDemandMetricsSupport(registry, this, "${amazonCloudProvider.id}:${OnDemandAgent.OnDemandType.ServerGroup}")
+    this.entityTagger = entityTagger
   }
 
   @Override
@@ -450,6 +456,10 @@ class ClusterCachingAgent implements CachingAgent, OnDemandAgent, AccountAware, 
     cacheResults[ON_DEMAND.ns].each {
       it.attributes.processedTime = System.currentTimeMillis()
       it.attributes.processedCount = (it.attributes.processedCount ?: 0) + 1
+    }
+
+    scalingPolicies.each { e ->
+      e.
     }
 
     result

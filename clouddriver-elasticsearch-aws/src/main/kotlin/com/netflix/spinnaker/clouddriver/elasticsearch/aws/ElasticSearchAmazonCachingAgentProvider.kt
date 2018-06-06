@@ -26,6 +26,7 @@ import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
 import com.netflix.spinnaker.clouddriver.elasticsearch.ElasticSearchClient
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
+import com.netflix.spinnaker.clouddriver.tags.EntityTagger
 import com.netflix.spinnaker.kork.core.RetrySupport
 import io.searchbox.client.JestClient
 
@@ -35,7 +36,8 @@ open class ElasticSearchAmazonCachingAgentProvider(
   private val retrySupport: RetrySupport,
   private val registry: Registry,
   private val amazonClientProvider: AmazonClientProvider,
-  private val accountCredentialsProvider: AccountCredentialsProvider
+  private val accountCredentialsProvider: AccountCredentialsProvider,
+  private val entityTagger : EntityTagger
 ) : AgentProvider {
 
   override fun supports(providerName: String): Boolean {
@@ -67,6 +69,14 @@ open class ElasticSearchAmazonCachingAgentProvider(
         amazonClientProvider,
         credentials,
         elasticSearchClient
+      ),
+      ClusterScalingPolicyTaggingAgent(
+        retrySupport,
+        registry,
+        amazonClientProvider,
+        credentials,
+        elasticSearchClient,
+        entityTagger
       )
     )
   }

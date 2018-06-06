@@ -35,6 +35,8 @@ data class BlockDeviceModel(val type: String)
 
 data class TagModel(val key: String, val value: Any)
 
+
+
 data class Moniker(val application: String,
                    val stack: String?,
                    val details: String?,
