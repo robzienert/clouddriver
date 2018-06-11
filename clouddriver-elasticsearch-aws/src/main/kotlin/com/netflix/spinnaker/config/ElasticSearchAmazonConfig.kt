@@ -21,6 +21,7 @@ import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.elasticsearch.aws.ElasticSearchAmazonCachingAgentProvider
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
+import com.netflix.spinnaker.clouddriver.tags.EntityTagger
 import com.netflix.spinnaker.kork.core.RetrySupport
 import io.searchbox.client.JestClient
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -36,13 +37,15 @@ open class ElasticSearchAmazonConfig {
                                                    retrySupport: RetrySupport,
                                                    registry: Registry,
                                                    amazonClientProvider: AmazonClientProvider,
-                                                   accountCredentialsProvider: AccountCredentialsProvider) =
+                                                   accountCredentialsProvider: AccountCredentialsProvider,
+                                                   entityTagger: EntityTagger) =
     ElasticSearchAmazonCachingAgentProvider(
       objectMapper,
       jestClient,
       retrySupport,
       registry,
       amazonClientProvider,
-      accountCredentialsProvider
+      accountCredentialsProvider,
+      entityTagger
     )
 }
