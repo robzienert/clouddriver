@@ -20,10 +20,14 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.amazonaws.services.ec2.model.DescribeImagesRequest
 import com.amazonaws.services.ec2.model.Filter
 import com.amazonaws.services.ec2.model.Image
+import com.netflix.spinnaker.kork.core.RetrySupport
+
 import java.util.regex.Pattern
 
 class AmiIdResolver {
   private static final Pattern amiIdPattern = Pattern.compile('^ami-[0-9a-f]+$')
+
+  private static final RetrySupport retrySupport = new RetrySupport()
 
   private static ResolvedAmiResult resolveAmiId(AmazonEC2 amazonEC2, String region, String nameOrId, String owner = null, String launcher = null) {
     def req = new DescribeImagesRequest()
@@ -39,7 +43,9 @@ class AmiIdResolver {
     if (launcher) {
       req.withExecutableUsers(launcher)
     }
-    Image resolvedImage = amazonEC2.describeImages(req)?.images?.getAt(0)
+    Image resolvedImage = retrySupport.retry({
+      amazonEC2.describeImages(req)?.images?.getAt(0)
+    }, 3, 1000, false)
     if (resolvedImage) {
       return new ResolvedAmiResult(nameOrId, region, resolvedImage.imageId, resolvedImage.virtualizationType, resolvedImage.ownerId, resolvedImage.blockDeviceMappings, resolvedImage.public)
     }

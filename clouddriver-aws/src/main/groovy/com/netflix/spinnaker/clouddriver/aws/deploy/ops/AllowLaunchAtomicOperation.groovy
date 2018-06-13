@@ -17,7 +17,20 @@
 package com.netflix.spinnaker.clouddriver.aws.deploy.ops
 
 import com.amazonaws.services.ec2.AmazonEC2
-import com.amazonaws.services.ec2.model.*
+import com.amazonaws.services.ec2.model.CreateTagsRequest
+import com.amazonaws.services.ec2.model.DeleteTagsRequest
+import com.amazonaws.services.ec2.model.DescribeTagsRequest
+import com.amazonaws.services.ec2.model.DescribeTagsResult
+import com.amazonaws.services.ec2.model.Filter
+import com.amazonaws.services.ec2.model.LaunchPermission
+import com.amazonaws.services.ec2.model.LaunchPermissionModifications
+import com.amazonaws.services.ec2.model.ModifyImageAttributeRequest
+import com.amazonaws.services.ec2.model.Tag
+import com.amazonaws.services.ec2.model.TagDescription
+import com.netflix.spinnaker.clouddriver.aws.deploy.AmiIdResolver
+import com.netflix.spinnaker.clouddriver.aws.deploy.ResolvedAmiResult
+import com.netflix.spinnaker.clouddriver.aws.deploy.description.AllowLaunchDescription
+import com.netflix.spinnaker.clouddriver.aws.model.AwsResultsRetriever
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonCredentials
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
@@ -26,10 +39,7 @@ import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.helpers.OperationPoller
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
-import com.netflix.spinnaker.clouddriver.aws.deploy.AmiIdResolver
-import com.netflix.spinnaker.clouddriver.aws.deploy.ResolvedAmiResult
-import com.netflix.spinnaker.clouddriver.aws.deploy.description.AllowLaunchDescription
-import com.netflix.spinnaker.clouddriver.aws.model.AwsResultsRetriever
+import com.netflix.spinnaker.kork.core.RetrySupport
 import groovy.transform.Canonical
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -51,6 +61,9 @@ class AllowLaunchAtomicOperation implements AtomicOperation<ResolvedAmiResult> {
 
   @Autowired
   AccountCredentialsProvider accountCredentialsProvider
+
+  @Autowired
+  RetrySupport retrySupport
 
   @Override
   ResolvedAmiResult operate(List priorOutputs) {
@@ -122,16 +135,16 @@ class AllowLaunchAtomicOperation implements AtomicOperation<ResolvedAmiResult> {
       Closure<Set<Tag>> getTags = { DescribeTagsRequest req, TagsRetriever ret ->
         new HashSet<Tag>(ret.retrieve(req).collect { new Tag(it.key, it.value) })
       }.curry(request)
-      Set<Tag> sourceTags = getTags(new TagsRetriever(sourceAmazonEC2))
+      Set<Tag> sourceTags = getTags(new TagsRetriever(sourceAmazonEC2, retrySupport))
       if (sourceTags.isEmpty()) {
         Thread.sleep(200)
-        sourceTags = getTags(new TagsRetriever(sourceAmazonEC2))
+        sourceTags = getTags(new TagsRetriever(sourceAmazonEC2, retrySupport))
       }
       if (sourceTags.isEmpty()) {
         task.updateStatus BASE_PHASE, "WARNING: empty tag set returned from DescribeTags, skipping tag sync"
       } else {
 
-        Set<Tag> targetTags = getTags(new TagsRetriever(targetAmazonEC2))
+        Set<Tag> targetTags = getTags(new TagsRetriever(targetAmazonEC2, retrySupport))
 
         Set<Tag> tagsToRemoveFromTarget = new HashSet<>(targetTags)
         tagsToRemoveFromTarget.removeAll(sourceTags)
@@ -140,11 +153,15 @@ class AllowLaunchAtomicOperation implements AtomicOperation<ResolvedAmiResult> {
 
         if (tagsToRemoveFromTarget) {
           task.updateStatus BASE_PHASE, "Removing tags on target AMI (${tagsToRemoveFromTarget.collect { "${it.key}: ${it.value}" }.join(", ")})."
-          targetAmazonEC2.deleteTags(new DeleteTagsRequest().withResources(resolvedAmi.amiId).withTags(tagsToRemoveFromTarget))
+          retrySupport.retry({
+            targetAmazonEC2.deleteTags(new DeleteTagsRequest().withResources(resolvedAmi.amiId).withTags(tagsToRemoveFromTarget))
+          }, 3, 500, false)
         }
         if (tagsToAddToTarget) {
           task.updateStatus BASE_PHASE, "Creating tags on target AMI (${tagsToAddToTarget.collect { "${it.key}: ${it.value}" }.join(", ")})."
-          targetAmazonEC2.createTags(new CreateTagsRequest().withResources(resolvedAmi.amiId).withTags(tagsToAddToTarget))
+          retrySupport.retry({
+            targetAmazonEC2.createTags(new CreateTagsRequest().withResources(resolvedAmi.amiId).withTags(tagsToAddToTarget))
+          }, 3, 500, false)
         }
       }
     }
@@ -156,10 +173,11 @@ class AllowLaunchAtomicOperation implements AtomicOperation<ResolvedAmiResult> {
   @Canonical
   static class TagsRetriever extends AwsResultsRetriever<TagDescription, DescribeTagsRequest, DescribeTagsResult> {
     final AmazonEC2 amazonEC2
+    final RetrySupport retrySupport
 
     @Override
     protected DescribeTagsResult makeRequest(DescribeTagsRequest request) {
-      amazonEC2.describeTags(request)
+      retrySupport.retry({ amazonEC2.describeTags(request) }, 3, 500, false)
     }
 
     @Override
