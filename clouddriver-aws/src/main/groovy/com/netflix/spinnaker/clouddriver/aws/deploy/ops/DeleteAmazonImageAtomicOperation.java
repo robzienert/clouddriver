@@ -24,6 +24,7 @@ import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class DeleteAmazonImageAtomicOperation implements AtomicOperation<Void> {
@@ -51,5 +52,11 @@ public class DeleteAmazonImageAtomicOperation implements AtomicOperation<Void> {
     getTask().updateStatus(BASE_PHASE, String.format("Deleted Image %s in %s",
       description.getImageId(), description.getRegion()));
     return null;
+  }
+
+  @Nullable
+  @Override
+  public String getLocation() {
+    return description.getRegion();
   }
 }

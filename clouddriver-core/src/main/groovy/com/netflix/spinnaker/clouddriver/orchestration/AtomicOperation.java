@@ -18,6 +18,7 @@ package com.netflix.spinnaker.clouddriver.orchestration;
 
 import com.netflix.spinnaker.clouddriver.orchestration.events.OperationEvent;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +39,17 @@ public interface AtomicOperation<R> {
 
   default Collection<OperationEvent> getEvents() {
     return Collections.emptyList();
+  }
+
+  /**
+   * The location where this atomic operation will operate; e.g. region, datacenter, namespace.
+   *
+   * Returns null if the operation can be applied anywhere.
+   */
+  @Nullable
+  default String getLocation() {
+    // TODO(rz): This isn't really what we want... prefer a constant or something.
+    return "UNKNOWN";
   }
 }
 

@@ -38,6 +38,9 @@ import com.netflix.spinnaker.clouddriver.aws.model.SubnetData
 import com.netflix.spinnaker.clouddriver.aws.services.RegionScopedProviderFactory
 import org.springframework.beans.factory.annotation.Autowired
 
+/**
+ * TODO(rz): Refactor to be federation-friendly
+ */
 class CopyLastAsgAtomicOperation implements AtomicOperation<DeploymentResult> {
   private static final String BASE_PHASE = "COPY_LAST_ASG"
 

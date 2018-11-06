@@ -27,6 +27,9 @@ import javax.inject.Provider
 
 import static com.netflix.spinnaker.clouddriver.aws.deploy.ops.securitygroup.SecurityGroupLookupFactory.SecurityGroupLookup
 
+/**
+ * TODO(rz): federation support... um? Even possible?
+ */
 class MigrateSecurityGroupAtomicOperation implements AtomicOperation<Void> {
 
   final MigrateSecurityGroupDescription description

@@ -37,19 +37,24 @@ class DeleteAlarmAtomicOperation implements AtomicOperation<Void> {
   private final DeleteAlarmDescription description
 
   DeleteAlarmAtomicOperation(DeleteAlarmDescription description) {
-        this.description = description
-    }
+    this.description = description
+  }
 
-    @Override
-    Void operate(List priorOutputs) {
-      task.updateStatus BASE_PHASE, "Initializing Delete Alarm Operation..."
-      def cloudWatch = amazonClientProvider.getCloudWatch(description.credentials, description.region, true)
-      String alarmDescription = "${description.names.join(", ")} in ${description.region} for ${description.credentials.name}"
-      task.updateStatus BASE_PHASE, "Deleting ${alarmDescription}."
-      cloudWatch.deleteAlarms(new DeleteAlarmsRequest(
-        alarmNames: description.names
-      ))
-      task.updateStatus BASE_PHASE, "Done deleting ${alarmDescription}."
-      null
-    }
+  @Override
+  Void operate(List priorOutputs) {
+    task.updateStatus BASE_PHASE, "Initializing Delete Alarm Operation..."
+    def cloudWatch = amazonClientProvider.getCloudWatch(description.credentials, description.region, true)
+    String alarmDescription = "${description.names.join(", ")} in ${description.region} for ${description.credentials.name}"
+    task.updateStatus BASE_PHASE, "Deleting ${alarmDescription}."
+    cloudWatch.deleteAlarms(new DeleteAlarmsRequest(
+      alarmNames: description.names
+    ))
+    task.updateStatus BASE_PHASE, "Done deleting ${alarmDescription}."
+    null
+  }
+
+  @Override
+  String getLocation() {
+    description.region
+  }
 }

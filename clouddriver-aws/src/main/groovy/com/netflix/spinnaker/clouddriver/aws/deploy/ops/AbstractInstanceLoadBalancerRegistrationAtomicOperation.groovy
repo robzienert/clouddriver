@@ -75,6 +75,11 @@ abstract class AbstractInstanceLoadBalancerRegistrationAtomicOperation implement
     null
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private Collection<String> getInstanceIds(AutoScalingGroup asg) {
     if (asg) {
       def asgInstanceIds = asg.instances*.instanceId as Set<String>

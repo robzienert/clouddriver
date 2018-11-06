@@ -82,6 +82,11 @@ class TerminateInstanceAndDecrementAsgAtomicOperation implements AtomicOperation
     task.updateStatus BASE_PHASE, "Done executing termination and ASG size decrement."
   }
 
+  @Override
+  String getLocation() {
+    returrn description.region
+  }
+
   AutoScalingGroup getAsg(AmazonAutoScaling autoScaling, String asgName) {
     def result = autoScaling.describeAutoScalingGroups(new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(asgName))
     if (!result.autoScalingGroups) {

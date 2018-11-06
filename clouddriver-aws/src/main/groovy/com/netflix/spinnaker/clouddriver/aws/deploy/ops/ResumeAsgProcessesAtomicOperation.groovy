@@ -51,6 +51,11 @@ class ResumeAsgProcessesAtomicOperation implements AtomicOperation<Void> {
     null
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private void resumeProcess(String asgName, String region) {
     try {
       def processTypes = description.processes.collect { AutoScalingProcessType.parse(it) }

@@ -28,6 +28,9 @@ import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import org.springframework.beans.factory.annotation.Autowired
 
+/**
+ * TODO(rz): refactor to support federation
+ */
 class UpsertAmiTagsAtomicOperation implements AtomicOperation<Void> {
   private static final String BASE_PHASE = "UPSERT_AMI_TAGS"
 

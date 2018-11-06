@@ -62,4 +62,8 @@ class UpsertAlarmAtomicOperation implements AtomicOperation<Map<String, String>>
     [alarmName: description.name.toString()]
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

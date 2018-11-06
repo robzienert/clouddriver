@@ -153,6 +153,11 @@ class AllowLaunchAtomicOperation implements AtomicOperation<ResolvedAmiResult> {
     resolvedAmi
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   @Canonical
   static class TagsRetriever extends AwsResultsRetriever<TagDescription, DescribeTagsRequest, DescribeTagsResult> {
     final AmazonEC2 amazonEC2

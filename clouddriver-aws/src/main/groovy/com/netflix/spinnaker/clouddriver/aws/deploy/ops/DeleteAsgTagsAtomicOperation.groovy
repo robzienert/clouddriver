@@ -63,4 +63,9 @@ class DeleteAsgTagsAtomicOperation implements AtomicOperation<Void> {
     autoScaling.deleteTags(deleteTagsRequest)
     task.updateStatus BASE_PHASE, "Tags deleted for $asgName in $region"
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

@@ -50,6 +50,9 @@ import groovy.util.logging.Slf4j
 
 import java.util.regex.Pattern
 
+/**
+ * TODO(rz): Federation support...
+ */
 @Slf4j
 class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescription> {
   private static final String BASE_PHASE = "DEPLOY"

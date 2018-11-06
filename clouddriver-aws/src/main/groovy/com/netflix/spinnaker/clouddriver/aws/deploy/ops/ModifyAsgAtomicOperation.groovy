@@ -27,6 +27,9 @@ import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import org.springframework.beans.factory.annotation.Autowired
 
+/**
+ * TODO(rz): Needs support for federation
+ */
 class ModifyAsgAtomicOperation implements AtomicOperation<Void> {
   private static final String BASE_PHASE = "MODIFY_ASG"
 

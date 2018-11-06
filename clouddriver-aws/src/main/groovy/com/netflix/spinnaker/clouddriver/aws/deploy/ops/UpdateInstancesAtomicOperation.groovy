@@ -81,4 +81,9 @@ class UpdateInstancesAtomicOperation implements AtomicOperation<Void> {
     }
     task.updateStatus PHASE, "Updated ${instances.size()} instances in $serverGroupName/$region"
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

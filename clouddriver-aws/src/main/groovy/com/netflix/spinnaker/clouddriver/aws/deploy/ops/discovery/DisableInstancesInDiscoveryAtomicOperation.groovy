@@ -32,4 +32,9 @@ class DisableInstancesInDiscoveryAtomicOperation extends AbstractEnableDisableIn
   String getPhaseName() {
     return "DISABLE_INSTANCES_IN_DISCOVERY"
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

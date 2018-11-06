@@ -82,6 +82,11 @@ class UpsertScalingPolicyAtomicOperation implements AtomicOperation<UpsertScalin
     }
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private void addAlarm(PutScalingPolicyResult scalingPolicyResult) {
     def alarm = description.alarm
     alarm.name = alarm.name ?: "${description.serverGroupName}-alarm-${description.alarm.metricName}-${idGenerator.nextId()}"

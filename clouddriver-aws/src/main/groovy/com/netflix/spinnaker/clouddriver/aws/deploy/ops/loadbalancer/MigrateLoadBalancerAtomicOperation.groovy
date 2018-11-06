@@ -31,6 +31,9 @@ import org.springframework.beans.factory.annotation.Autowired
 
 import javax.inject.Provider
 
+/**
+ * TODO(rz): federation support... um? Even possible?
+ */
 class MigrateLoadBalancerAtomicOperation implements AtomicOperation<Void> {
 
   final MigrateLoadBalancerDescription description

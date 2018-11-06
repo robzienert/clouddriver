@@ -130,4 +130,9 @@ class DetachInstancesAtomicOperation implements AtomicOperation<Void> {
 
     null
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

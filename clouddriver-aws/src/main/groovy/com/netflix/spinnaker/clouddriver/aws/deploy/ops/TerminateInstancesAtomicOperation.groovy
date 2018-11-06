@@ -47,4 +47,9 @@ class TerminateInstancesAtomicOperation implements AtomicOperation<Void> {
     task.updateStatus BASE_PHASE, "Done executing termination of instances (${description.instanceIds.join(", ")})."
     null
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

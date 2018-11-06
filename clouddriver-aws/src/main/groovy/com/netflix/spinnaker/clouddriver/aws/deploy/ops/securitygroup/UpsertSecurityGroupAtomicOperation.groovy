@@ -118,6 +118,11 @@ class UpsertSecurityGroupAtomicOperation implements AtomicOperation<Void> {
     null
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private ConvertedIngress convertDescriptionToIngress(SecurityGroupLookup securityGroupLookup, UpsertSecurityGroupDescription description, boolean ignoreSelfReferencingRules) {
     ConvertedIngress ipPermissionsFromDescription = SecurityGroupIngressConverter.
       convertIngressToIpPermissions(securityGroupLookup, description)

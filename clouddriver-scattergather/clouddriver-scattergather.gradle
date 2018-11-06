@@ -1,0 +1,11 @@
+apply from: "$rootDir/gradle/kotlin.gradle"
+
+repositories {
+  jcenter()
+}
+
+dependencies {
+  compile spinnaker.dependency("kork")
+  compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2"
+  compile "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:0.30.2"
+}

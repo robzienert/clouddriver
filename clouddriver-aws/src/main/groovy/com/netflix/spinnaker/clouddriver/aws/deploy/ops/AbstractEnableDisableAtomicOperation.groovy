@@ -211,6 +211,11 @@ abstract class AbstractEnableDisableAtomicOperation implements AtomicOperation<V
     }
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private static void changeRegistrationOfInstancesWithTargetGroups(Collection<String> targetGroupArns, Collection<String> instanceIds, Closure actOnInstancesAndTargetGroup) {
     handleInstancesWithLoadBalancing(targetGroupArns, instanceIds, { new TargetDescription().withId(it) }, actOnInstancesAndTargetGroup)
   }

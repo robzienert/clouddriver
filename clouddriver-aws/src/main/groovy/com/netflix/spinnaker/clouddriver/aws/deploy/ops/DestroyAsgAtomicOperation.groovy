@@ -118,4 +118,8 @@ class DestroyAsgAtomicOperation implements AtomicOperation<Void> {
     }
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

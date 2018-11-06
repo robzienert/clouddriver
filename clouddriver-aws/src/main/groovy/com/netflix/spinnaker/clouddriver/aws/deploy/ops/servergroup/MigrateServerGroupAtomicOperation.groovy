@@ -28,7 +28,9 @@ import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import org.springframework.beans.factory.annotation.Autowired
 
 import javax.inject.Provider
-
+/**
+ * TODO(rz): federation support... um? Even possible?
+ */
 class MigrateServerGroupAtomicOperation implements AtomicOperation<Void> {
 
   final MigrateServerGroupDescription description

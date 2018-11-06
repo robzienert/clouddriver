@@ -48,4 +48,9 @@ class RebootInstancesAtomicOperation implements AtomicOperation<Void> {
     task.updateStatus BASE_PHASE, "Done rebooting instances (${description.instanceIds.join(", ")})."
     null
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

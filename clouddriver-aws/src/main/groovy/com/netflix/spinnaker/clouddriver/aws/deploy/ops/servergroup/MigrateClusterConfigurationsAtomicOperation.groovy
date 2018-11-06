@@ -32,6 +32,9 @@ import org.springframework.beans.factory.annotation.Autowired
 
 import javax.inject.Provider
 
+/**
+ * TODO(rz): federation support... um? Even possible?
+ */
 class MigrateClusterConfigurationsAtomicOperation implements AtomicOperation<Void> {
 
   final MigrateClusterConfigurationsDescription description

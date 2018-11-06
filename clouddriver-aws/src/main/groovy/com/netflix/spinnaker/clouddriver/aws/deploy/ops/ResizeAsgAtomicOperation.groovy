@@ -61,6 +61,11 @@ class ResizeAsgAtomicOperation implements AtomicOperation<Void> {
     null
   }
 
+  @Override
+  String getLocation() {
+    return description.region
+  }
+
   private void resizeAsg(String asgName,
                          String region,
                          ServerGroup.Capacity capacity,

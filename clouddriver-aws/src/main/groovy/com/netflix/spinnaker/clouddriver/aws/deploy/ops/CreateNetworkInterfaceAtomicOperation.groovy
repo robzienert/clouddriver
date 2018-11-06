@@ -26,6 +26,9 @@ import com.netflix.spinnaker.clouddriver.aws.services.NetworkInterfaceService
 import com.netflix.spinnaker.clouddriver.aws.services.RegionScopedProviderFactory
 import org.springframework.beans.factory.annotation.Autowired
 
+/**
+ * TODO(rz): Refactor to be federation-friendly
+ */
 class CreateNetworkInterfaceAtomicOperation implements AtomicOperation<ResultByZone<NetworkInterface>> {
   private static final String BASE_PHASE = "CREATE_NETWORK_INTERFACE"
 
@@ -67,5 +70,4 @@ class CreateNetworkInterfaceAtomicOperation implements AtomicOperation<ResultByZ
     }
     resultByZone.build()
   }
-
 }

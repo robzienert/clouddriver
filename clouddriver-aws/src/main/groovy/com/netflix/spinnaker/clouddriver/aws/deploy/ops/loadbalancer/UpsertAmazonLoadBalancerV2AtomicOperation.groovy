@@ -38,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired
 /**
  * An AtomicOperation for creating an Elastic Load Balancer from the description of {@link UpsertAmazonLoadBalancerV2Description}.
  *
- *
+ * TODO(rz): federation support
  */
 class UpsertAmazonLoadBalancerV2AtomicOperation implements AtomicOperation<UpsertAmazonLoadBalancerV2Result> {
   private static final String BASE_PHASE = "CREATE_ELB_V2"

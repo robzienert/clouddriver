@@ -53,4 +53,9 @@ class AttachClassicLinkVpcAtomicOperation implements AtomicOperation<Void> {
     task.updateStatus BASE_PHASE, "Done executing $msg"
     null
   }
+
+  @Override
+  String getLocation() {
+    return description.region
+  }
 }

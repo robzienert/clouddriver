@@ -66,4 +66,9 @@ class UpsertAmazonDNSAtomicOperation implements AtomicOperation<UpsertAmazonDNSR
     task.updateStatus BASE_PHASE, "Upsertion complete."
     new UpsertAmazonDNSResult(dnsName: description.name)
   }
+
+  @Override
+  String getLocation() {
+    return null
+  }
 }
