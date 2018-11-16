@@ -13,28 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.scattergather
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import javax.servlet.http.HttpServletRequest
 
-import java.util.*;
-
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
-
-  String shardName;
-
-  String location;
-
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
-  }
-}
+/**
+ * @param targets Target name (shard, etc) to base URL mapping
+ * @param original The original servlet request that is initiating the scatter/gather operation
+ */
+data class ServletScatterGatherRequest(
+  val targets: Map<String, String>,
+  val original: HttpServletRequest
+)

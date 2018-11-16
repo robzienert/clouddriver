@@ -13,11 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.scattergather
+package com.netflix.spinnaker.clouddriver.federation;
 
-//class ScatterGatherRequestor {
-//
-//  fun request(request: Any): Any {
-//
-//  }
-//}
+import java.util.UUID;
+
+public class FederationWorker {
+
+  String enqueue() {
+
+    // Enqueue the scatter/gather work. This should be some internal proc that pulls work off a memory FIFO queue
+    // A UUID will be returned as the work ID, which can be used to retrieve related work. Or should this just be
+    // passed a consumer and that be that?
+
+    return UUID.randomUUID().toString();
+  }
+
+
+
+}

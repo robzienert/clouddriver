@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.scattergather
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import okhttp3.Response
 
-import java.util.*;
+/**
+ * Reduces a list of [Response]s to a single response representation.
+ *
+ * TODO(rz): Refactor to not expose OkHttp3. When we add support for local-scattering, we'll want all existing reducers
+ *           to automatically support the new execution path. Would also be handy because we could later add support
+ *           for other backends like redis, pubsub, kafka, etc.
+ */
+interface ResponseReducer {
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
-
-  String shardName;
-
-  String location;
-
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
-  }
+  fun reduce(responses: List<Response>): ReducedResponse
 }
+

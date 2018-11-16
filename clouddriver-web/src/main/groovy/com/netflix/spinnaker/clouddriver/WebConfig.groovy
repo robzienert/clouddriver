@@ -18,9 +18,11 @@ package com.netflix.spinnaker.clouddriver
 
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.clouddriver.configuration.CredentialsConfiguration
-
+import com.netflix.spinnaker.clouddriver.federation.FederationHandlerInterceptor
+import com.netflix.spinnaker.clouddriver.federation.config.ShardConfigurationProvider
 import com.netflix.spinnaker.clouddriver.requestqueue.RequestQueue
 import com.netflix.spinnaker.clouddriver.requestqueue.RequestQueueConfiguration
+import com.netflix.spinnaker.clouddriver.scattergather.ScatterGather
 import com.netflix.spinnaker.filters.AuthenticatedRequestFilter
 import com.netflix.spinnaker.kork.dynamicconfig.DynamicConfigService
 import com.netflix.spinnaker.kork.web.interceptors.MetricsInterceptor
@@ -45,14 +47,19 @@ import javax.servlet.http.HttpServletResponse
 @Configuration
 @ComponentScan([
   'com.netflix.spinnaker.clouddriver.controllers',
-  'com.netflix.spinnaker.clouddriver.filters',
   'com.netflix.spinnaker.clouddriver.listeners',
-  'com.netflix.spinnaker.clouddriver.security',
+  'com.netflix.spinnaker.clouddriver.security'
 ])
 @EnableConfigurationProperties([CredentialsConfiguration, RequestQueueConfiguration])
 public class WebConfig extends WebMvcConfigurerAdapter {
   @Autowired
   Registry registry
+
+  @Autowired
+  ShardConfigurationProvider shardConfigurationProvider
+
+  @Autowired
+  ScatterGather scatterGather
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
@@ -61,6 +68,7 @@ public class WebConfig extends WebMvcConfigurerAdapter {
         this.registry, "controller.invocations", ["account", "region"], ["BasicErrorController"]
       )
     )
+    registry.addInterceptor(new FederationHandlerInterceptor(shardConfigurationProvider, scatterGather))
   }
 
   @Bean

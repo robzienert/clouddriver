@@ -15,26 +15,23 @@
  */
 package com.netflix.spinnaker.clouddriver.federation;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer;
 
-import java.util.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface FederationAdvice {
+  boolean local() default false;
 
-  String shardName;
+  Class<? extends ResponseReducer> reducer();
 
-  String location;
-
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
-  }
+  /**
+   * Needed for some endpoints where the location is not using a standard name. (e.g. clusters endpoints use "scope")
+   */
+  String locationParameter();
+  String accountParameter();
 }

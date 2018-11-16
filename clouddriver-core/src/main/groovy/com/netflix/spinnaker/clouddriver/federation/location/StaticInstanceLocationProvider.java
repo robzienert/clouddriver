@@ -13,28 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.federation.location;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.netflix.spinnaker.clouddriver.federation.FederationConfigurationProperties;
 
-import java.util.*;
+import javax.annotation.Nonnull;
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
+public class StaticInstanceLocationProvider implements InstanceLocationProvider {
 
-  String shardName;
+  private final FederationConfigurationProperties properties;
 
-  String location;
+  public StaticInstanceLocationProvider(FederationConfigurationProperties properties) {
+    this.properties = properties;
+  }
 
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
+  @Nonnull
+  @Override
+  public String provide() {
+    return properties.getLocation();
   }
 }

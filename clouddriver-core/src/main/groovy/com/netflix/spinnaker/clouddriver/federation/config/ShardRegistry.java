@@ -13,28 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.federation.config;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
+import javax.annotation.Nonnull;
 import java.util.*;
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
+public class ShardRegistry {
 
-  String shardName;
+  private final Set<Shard> shards = new HashSet<>();
 
-  String location;
+  public Optional<Shard> getShard(@Nonnull String name) {
+    return shards.stream().filter(s -> s.name.equals(name)).findFirst();
+  }
 
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
+  public Set<Shard> findShards(String location, String account) {
+    throw new UnsupportedOperationException("nope");
   }
 }

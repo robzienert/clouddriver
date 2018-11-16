@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.scattergather
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import javax.servlet.http.HttpServletRequest
 
-import java.util.*;
+/**
+ * Provides an API for performing scatter/gather operations across distributed services.
+ */
+interface ScatterGather {
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
-
-  String shardName;
-
-  String location;
-
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
-  }
+  /**
+   * Copies a provided [HttpServletRequest] to a set of provided targets.
+   * Once all requests come back, their individual responses are passed to the
+   * [reducer] to produce the final merged response.
+   */
+  fun request(request: ServletScatterGatherRequest, reducer: ResponseReducer): ReducedResponse
 }

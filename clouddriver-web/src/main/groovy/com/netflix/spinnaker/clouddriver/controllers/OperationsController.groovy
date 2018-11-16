@@ -22,6 +22,7 @@ import com.netflix.spinnaker.clouddriver.deploy.DescriptionAuthorizer
 import com.netflix.spinnaker.clouddriver.deploy.DescriptionValidationErrors
 import com.netflix.spinnaker.clouddriver.deploy.DescriptionValidationException
 import com.netflix.spinnaker.clouddriver.deploy.DescriptionValidator
+import com.netflix.spinnaker.clouddriver.federation.FederationAdvice
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperationConverter
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperationDescriptionPreProcessor
@@ -47,6 +48,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @Slf4j
 @RestController
+@FederationAdvice(local = true)
 class OperationsController {
 
   @Autowired MessageSource messageSource
