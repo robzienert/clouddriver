@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.google.common.base.Splitter
 import com.netflix.spinnaker.clouddriver.scattergather.ReducedResponse
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer
 import okhttp3.Response
@@ -31,28 +30,23 @@ import okhttp3.Response
  */
 class DeepMergeResponseReducer : ResponseReducer {
 
-  private val splitter = Splitter.on(",")
   private val objectMapper = ObjectMapper()
 
   /**
    * TODO(rz): Handle errors
    */
   override fun reduce(responses: List<Response>): ReducedResponse {
-    requireAllSuccessful(responses)
-
-    val headers = mergeHeaders(responses)
-    val contentType = headers.getOrDefault("Content-Type", "application/json")
-    val characterEncoding = "UTF-8" // TODO(rz): It just is, let's say.
+    // TODO(rz): 404's, 429's... all of these things are legit to pass back to the client.
+//    requireAllSuccessful(responses)
 
     // TODO(rz): Handle 204 requests and that sort of thing; stuff that won't have bodies
-
     val body = mergeResponseBodies(responses)
 
     return ReducedResponse(
       responses.first().code(),
-      mergeHeaders(responses),
-      contentType,
-      characterEncoding,
+      mapOf(), // TODO(rz): Not really sure what to do about headers at this point
+      "application/json",
+      "UTF-8",
       body.toString(),
       false
     )
@@ -105,42 +99,5 @@ class DeepMergeResponseReducer : ResponseReducer {
       }
     }
     return mainNode
-  }
-
-  private fun requireAllSuccessful(responses: List<Response>) {
-    val failed = responses.filter { !it.isSuccessful }
-    if (failed.isNotEmpty()) {
-      // TODO(rz): Need a whole lot better diagnostics here.
-      // TODO(rz): Should really return a ReducedResponse where the isError flag is true
-      throw RuntimeException("Failed requests from shards")
-    }
-  }
-
-  /**
-   * TODO(rz): Merging headers in the way that I'm doing here is probably wildly incorrect. Many of these will not
-   * merge well (take for example, timestamps and the like).
-   */
-  private fun mergeHeaders(responses: List<Response>): Map<String, String> {
-
-    // TODO(rz): A whole lot of duplicates that don't need to be duplicates.
-    return mapOf<String, String>()
-
-//    responses.forEach { response ->
-//      response.headers().toMultimap().forEach { (key, values) ->
-//        if (headers.containsKey(key)) {
-//          if (values is Collection<*>) {
-//            @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-//            headers[key] = splitter.splitToList(headers[key])
-//              .also { it.addAll(values) }
-//              .asSequence()
-//              .distinct()
-//              .joinToString(",")
-//          }
-//        } else {
-//          headers[key] = values.joinToString(",")
-//        }
-//      }
-//    }
-//    return headers
   }
 }

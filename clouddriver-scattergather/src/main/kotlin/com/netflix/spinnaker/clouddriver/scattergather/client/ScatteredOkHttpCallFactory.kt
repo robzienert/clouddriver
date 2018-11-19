@@ -75,6 +75,6 @@ class ScatteredOkHttpCallFactory(
   }
 
   companion object {
-    val SCATTER_HEADER = "X-Spinnaker-ScatteredRequest"
+    const val SCATTER_HEADER = "X-Spinnaker-ScatteredRequest"
   }
 }

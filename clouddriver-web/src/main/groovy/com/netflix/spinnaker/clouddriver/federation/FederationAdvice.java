@@ -16,6 +16,7 @@
 package com.netflix.spinnaker.clouddriver.federation;
 
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer;
+import com.netflix.spinnaker.clouddriver.scattergather.reducer.DeepMergeResponseReducer;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -27,11 +28,11 @@ import java.lang.annotation.Target;
 public @interface FederationAdvice {
   boolean local() default false;
 
-  Class<? extends ResponseReducer> reducer();
+  Class<? extends ResponseReducer> reducer() default DeepMergeResponseReducer.class;
 
   /**
    * Needed for some endpoints where the location is not using a standard name. (e.g. clusters endpoints use "scope")
    */
-  String locationParameter();
-  String accountParameter();
+  String locationParameter() default "";
+  String accountParameter() default "";
 }

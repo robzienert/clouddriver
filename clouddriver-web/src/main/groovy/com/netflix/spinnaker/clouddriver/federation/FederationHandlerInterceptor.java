@@ -38,6 +38,9 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 
 /**
+ * Currently does not do local process dispatching. If the local shard is needed to fulfill a request, a separate
+ * call is made and merged in. Local dispatching is a future enhancement.
+ *
  * TODO(rz): Some endpoints will need to be routed to a single shard, others scatter/gather, others return the local
  * TODO(rz): Need to support routing write operations
  */
@@ -50,14 +53,11 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
 
   private final ShardConfigurationProvider shardConfigurationProvider;
   private final ScatterGather scatterGather;
-  private final FederationWorker federationWorker;
 
   public FederationHandlerInterceptor(ShardConfigurationProvider shardConfigurationProvider,
                                       ScatterGather scatterGather) {
-    // TODO(rz): wire
     this.shardConfigurationProvider = shardConfigurationProvider;
     this.scatterGather = scatterGather;
-    federationWorker = new FederationWorker();
   }
 
   @Override
@@ -80,8 +80,8 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
 
     // Extract information from the handler that will be required for routing.
     Map<String, Object> requestVariables = getRequestVariables(request);
-    String location = getVariable(LOCATION_KEYS, requestVariables);
-    String account = getVariable(ACCOUNT_KEYS, requestVariables);
+    String location = getLocation(handlerMethod, requestVariables);
+    String account = getAccount(handlerMethod, requestVariables);
 
     // Look up the shard(s) that will be responsible for actually servicing the requests.
     List<Shard> shards;
@@ -96,10 +96,6 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
       return false;
     }
     log.debug("Selected shards: {}", shards.stream().map(Shard::getName).collect(Collectors.toList()));
-
-    // TODO(rz): What if this instance needs to service the request as well? I'll need to push all of this scatter
-    // gather stuff for other shards into a separate process, handle the request as it exists, then merge things
-    // together in postHandle?
 
     ServletScatterGatherRequest scatterRequest = new ServletScatterGatherRequest(
       shards.stream().collect(Collectors.toMap(Shard::getName, Shard::getBaseUrl)),
@@ -120,18 +116,7 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
 
   @Override
   public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws IOException {
-    if (isScatteredRequest(request)) {
-      // If the request is already scattered, we should just return the response as-is.
-      return;
-    }
-
-    // IMPORTANT: This code path will only be used if the local instance needed to service the request as well.
-//    ContentCachingResponseWrapper responseWrapper = WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
-//
-//    String localResponse = IOUtils.toString(responseWrapper.getContentInputStream());
-//    responseWrapper.reset();
-
-    // TODO(rz): And then here I can pull together everything via the reducers...
+    // Do nothing.
   }
 
   @Override
@@ -146,6 +131,22 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
       return new HashMap<>((Map<String, Object>) uriTemplateVariables);
     }
     return Collections.EMPTY_MAP;
+  }
+
+  private static String getLocation(HandlerMethod handlerMethod, Map<String, Object> requestVariables) {
+    FederationAdvice advice = getHandlerFederationAdvice(handlerMethod);
+    if (advice != null && !advice.locationParameter().isEmpty()) {
+      return getVariable(Sets.newHashSet(advice.locationParameter()), requestVariables);
+    }
+    return getVariable(LOCATION_KEYS, requestVariables);
+  }
+
+  private static String getAccount(HandlerMethod handlerMethod, Map<String, Object> requestVariables) {
+    FederationAdvice advice = getHandlerFederationAdvice(handlerMethod);
+    if (advice != null && !advice.accountParameter().isEmpty()) {
+      return getVariable(Sets.newHashSet(advice.accountParameter()), requestVariables);
+    }
+    return getVariable(ACCOUNT_KEYS, requestVariables);
   }
 
   private static String getVariable(Set<String> names, Map<String, Object> variables) {
@@ -166,7 +167,7 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     return (HandlerMethod) handler;
   }
 
-  private FederationAdvice getHandlerFederationAdvice(HandlerMethod method) {
+  private static FederationAdvice getHandlerFederationAdvice(HandlerMethod method) {
     FederationAdvice advice = method.getMethodAnnotation(FederationAdvice.class);
     if (advice != null) {
       return advice;
@@ -176,7 +177,7 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     return null;
   }
 
-  private boolean hasLocalAdvice(HandlerMethod method) {
+  private static boolean hasLocalAdvice(HandlerMethod method) {
     FederationAdvice advice = getHandlerFederationAdvice(method);
     if (advice == null) {
       return false;
@@ -184,7 +185,7 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     return advice.local();
   }
 
-  private ResponseReducer getReducer(HandlerMethod method) {
+  private static ResponseReducer getReducer(HandlerMethod method) {
     FederationAdvice advice = getHandlerFederationAdvice(method);
     if (advice == null) {
       return new DeepMergeResponseReducer();
@@ -198,7 +199,7 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     }
   }
 
-  private boolean isScatteredRequest(HttpServletRequest request) {
+  private static boolean isScatteredRequest(HttpServletRequest request) {
     return request.getHeader("X-Spinnaker-ScatteredRequest") != null;
   }
 }

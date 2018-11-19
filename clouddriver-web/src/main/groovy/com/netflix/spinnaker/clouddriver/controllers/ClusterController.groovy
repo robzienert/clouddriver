@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.clouddriver.controllers
 
+import com.netflix.spinnaker.clouddriver.federation.FederationAdvice
 import com.netflix.spinnaker.clouddriver.model.Application
 import com.netflix.spinnaker.clouddriver.model.ApplicationProvider
 import com.netflix.spinnaker.clouddriver.model.Cluster
@@ -182,6 +183,7 @@ class ClusterController {
    * @param scope Should be either a region or zone, depending on the cloud provider.
    * @return A dynamically determined server group using a {@code TargetServerGroup} specifier.
    */
+  @FederationAdvice(locationParameter = "scope")
   @PreAuthorize("hasPermission(#application, 'APPLICATION', 'READ') && hasPermission(#account, 'ACCOUNT', 'READ')")
   @RequestMapping(value = "/{account:.+}/{clusterName:.+}/{cloudProvider}/{scope}/serverGroups/target/{target:.+}", method = RequestMethod.GET)
   ServerGroup getTargetServerGroup(
