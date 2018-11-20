@@ -22,9 +22,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.netflix.spinnaker.clouddriver.scattergather.ReducedResponse
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer
 import okhttp3.Response
+import org.springframework.http.HttpStatus
 
 /**
  * Performs a recursive merge across responses.
+ *
+ * Elements inside of an array will not be recursed. If two responses have the same
+ * key mapped to an array, the elements from the second response will be appended,
+ * removing any duplicate objects, but there will be no recursion of the array
+ * elements themselves.
  *
  * Conflict resolution is last-one-wins, where responses are ordered by the client.
  */
@@ -39,33 +45,39 @@ class DeepMergeResponseReducer : ResponseReducer {
     // TODO(rz): 404's, 429's... all of these things are legit to pass back to the client.
 //    requireAllSuccessful(responses)
 
-    // TODO(rz): Handle 204 requests and that sort of thing; stuff that won't have bodies
     val body = mergeResponseBodies(responses)
 
     return ReducedResponse(
-      responses.first().code(),
+      getResponseCode(responses),
       mapOf(), // TODO(rz): Not really sure what to do about headers at this point
       "application/json",
       "UTF-8",
-      body.toString(),
-      false
+      body?.toString(),
+      hasErrors(responses)
     )
   }
 
-  private fun mergeResponseBodies(responses: List<Response>): JsonNode {
-    val main = objectMapper.readTree(responses.first().body()?.string())
+  private fun mergeResponseBodies(responses: List<Response>): JsonNode? {
+    val mainBody = responses.first().body()?.string() ?: return null
+    val main = objectMapper.readTree(mainBody)
     if (responses.size == 1) {
       return main
     }
 
     // TODO(rz): This is bad.
-    responses.filterNot { it == responses.first() }.forEach {
-      mergeNodes(main, objectMapper.readTree(it.body()?.string()))
-    }
+    responses
+      .asSequence()
+      .filterNot { it == responses.first() }
+      .map { it.body()?.string() }
+      .filterNotNull()
+      .toList()
+      .forEach {
+        mergeNodes(main, objectMapper.readTree(it))
+      }
+
     return main
   }
 
-  // This code was lifted from stack overflow...
   private fun mergeNodes(mainNode: JsonNode, updateNode: JsonNode?): JsonNode {
     if (updateNode == null) {
       return mainNode
@@ -80,14 +92,9 @@ class DeepMergeResponseReducer : ResponseReducer {
       // If the node is an @ArrayNode
       if (valueToBeUpdated != null && valueToBeUpdated is ArrayNode && updatedValue.isArray) {
         updatedValue.forEachIndexed { index, updatedChildNode ->
-          // Create a new Node in the node that should be updated, if there was no corresponding node in it
-          // Use case: Where the updateNode will have a new element in its Array
-          if (valueToBeUpdated.size() <= index) {
+          if (!valueToBeUpdated.contains(updatedChildNode)) {
             valueToBeUpdated.add(updatedChildNode)
           }
-          // getting reference for the node to be updated
-          val childNodeToBeUpdated = valueToBeUpdated.get(index)
-          mergeNodes(childNodeToBeUpdated, updatedChildNode)
         }
       } else if (valueToBeUpdated != null && valueToBeUpdated.isObject) {
         mergeNodes(valueToBeUpdated, updatedValue)
@@ -100,4 +107,31 @@ class DeepMergeResponseReducer : ResponseReducer {
     }
     return mainNode
   }
+
+  /**
+   * TODO(rz): The heuristics in this method don't seem totally sane.
+   */
+  private fun getResponseCode(responses: List<Response>): Int {
+    if (hasErrors(responses)) {
+      return HttpStatus.BAD_GATEWAY.value()
+    }
+
+    val distinctCodes = responses.asSequence().map { it.code() }.distinct().toList()
+    if (distinctCodes.size == 1) {
+      return distinctCodes[0]
+    }
+    if (distinctCodes.all { it in 200..299 }) {
+      return HttpStatus.OK.value()
+    }
+    if (distinctCodes.any { it == 404 }) {
+      return HttpStatus.NOT_FOUND.value()
+    }
+    if (distinctCodes.any { it == 429 }) {
+      return HttpStatus.TOO_MANY_REQUESTS.value()
+    }
+    return HttpStatus.NON_AUTHORITATIVE_INFORMATION.value()
+  }
+
+  private fun hasErrors(responses: List<Response>): Boolean =
+    responses.any { it.code() >= 500 }
 }

@@ -28,7 +28,7 @@ data class ReducedResponse(
   val headers: Map<String, String>,
   val contentType: String,
   val characterEncoding: String,
-  val body: String,
+  val body: String?,
   val isError: Boolean
 ) {
 
@@ -36,7 +36,7 @@ data class ReducedResponse(
     response.status = status
     response.contentType = contentType
     response.characterEncoding = characterEncoding
-    response.setContentLength(body.length)
+    response.setContentLength(body?.length ?: -1)
 
     headers.forEach {
       response.setHeader(it.key, it.value)

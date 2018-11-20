@@ -40,7 +40,7 @@ class ScatteredOkHttpCallFactory(
    */
   fun createCalls(workId: String,
                   targets: Map<String, String>,
-                  originalRequest: HttpServletRequest): Collection<Call> {
+                  originalRequest: HttpServletRequest): List<Call> {
     val requestBody = getRequestBody(originalRequest)
 
     return targets.map { (targetName, baseUrl) ->

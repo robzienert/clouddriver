@@ -43,8 +43,6 @@ class NaiveScatterGather(
 
     val responses = calls.map { it.execute() }
 
-    // TODO(rz): Probably need to get some better error handling here.
-    // TODO(rz): Add more context to the reducer, like how many responses are expected, etc?
     return reducer.reduce(responses)
   }
 }
