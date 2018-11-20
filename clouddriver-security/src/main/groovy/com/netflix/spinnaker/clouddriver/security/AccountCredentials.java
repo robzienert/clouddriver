@@ -57,7 +57,7 @@ public interface AccountCredentials<T> {
    * e.g.:
    * <ul>
    *     <li>account name: maindev, environment: dev, accountType: main</li>
-   *     <li>account name: maintest, environment: test, accountType: main</li>
+   *     <li>account name: maintest, environment: test, accountType: main</li>P
    *     <li>account name: mainprod, environment: prod, accountType: main</li>
    * </ul>
    *

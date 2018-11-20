@@ -32,6 +32,7 @@ import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonCredentials
 import com.netflix.spinnaker.clouddriver.aws.security.EddaTimeoutConfig
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
+import com.netflix.spinnaker.clouddriver.federation.config.ShardConfigurationProvider
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsRepository
 import com.netflix.spinnaker.clouddriver.security.ProviderUtils
 import com.netflix.spinnaker.clouddriver.aws.edda.EddaApiFactory
@@ -72,7 +73,8 @@ class AwsProviderConfig {
                           ExecutorService reservationReportPool,
                           Optional<Collection<AgentProvider>> agentProviders,
                           EddaTimeoutConfig eddaTimeoutConfig,
-                          DynamicConfigService dynamicConfigService) {
+                          DynamicConfigService dynamicConfigService,
+                          ShardConfigurationProvider shardConfigurationProvider) {
     def awsProvider =
       new AwsProvider(accountCredentialsRepository, Collections.newSetFromMap(new ConcurrentHashMap<Agent, Boolean>()))
 
@@ -88,7 +90,8 @@ class AwsProviderConfig {
                            reservationReportPool,
                            agentProviders.orElse(Collections.emptyList()),
                            eddaTimeoutConfig,
-                           dynamicConfigService)
+                           dynamicConfigService,
+                           shardConfigurationProvider)
 
     awsProvider
   }
@@ -126,7 +129,8 @@ class AwsProviderConfig {
                                                  ExecutorService reservationReportPool,
                                                  Collection<AgentProvider> agentProviders,
                                                  EddaTimeoutConfig eddaTimeoutConfig,
-                                                 DynamicConfigService dynamicConfigService) {
+                                                 DynamicConfigService dynamicConfigService,
+                                                 ShardConfigurationProvider shardConfigurationProvider) {
     def scheduledAccounts = ProviderUtils.getScheduledAccounts(awsProvider)
     Set<NetflixAmazonCredentials> allAccounts = ProviderUtils.buildThreadSafeSetOfAccounts(accountCredentialsRepository, NetflixAmazonCredentials)
 
@@ -139,7 +143,7 @@ class AwsProviderConfig {
     //TODO(cfieber)-rework this is after rework of AWS Image/NamedImage keys
     allAccounts.sort { it.name }.each { NetflixAmazonCredentials credentials ->
       for (AmazonCredentials.AWSRegion region : credentials.regions) {
-        if (!scheduledAccounts.contains(credentials.name)) {
+        if (!scheduledAccounts.contains(credentials.name) && shardConfigurationProvider.localSupport(region.name, credentials.name)) {
           newlyAddedAgents << new ClusterCachingAgent(amazonCloudProvider, amazonClientProvider, credentials, region.name, objectMapper, registry, eddaTimeoutConfig)
           newlyAddedAgents << new LaunchConfigCachingAgent(amazonClientProvider, credentials, region.name, objectMapper, registry)
           newlyAddedAgents << new ImageCachingAgent(amazonClientProvider, credentials, region.name, objectMapper, registry, false, dynamicConfigService)

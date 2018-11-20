@@ -71,7 +71,7 @@ class ScatteredOkHttpCallFactory(
 
   private fun HttpServletRequest.toUrl(baseUrl: String): String {
     val url = "$baseUrl$requestURI"
-    return if (queryString == null) url else "$url$queryString"
+    return if (queryString == null) url else "$url?$queryString"
   }
 
   companion object {

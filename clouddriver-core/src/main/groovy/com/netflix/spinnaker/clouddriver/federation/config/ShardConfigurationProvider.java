@@ -84,6 +84,14 @@ public class ShardConfigurationProvider {
       .collect(Collectors.toList());
   }
 
+  public boolean localSupport(String location, String account) {
+    Shard local = shards.get(properties.getShardName());
+    if (local == null) {
+      return false;
+    }
+    return local.supports(location, account);
+  }
+
   public boolean supportsOperation(AtomicOperation<?> operation) {
     String location = operation.getLocation();
 
