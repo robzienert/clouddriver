@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.federation.location;
 
-import java.util.Map;
+import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 
-/**
- * Allows extraction of an Atomic Operation's shard dimensions.
- */
-public interface AtomicOperationShardProvider {
+public class DefaultOperationLocationResolver implements OperationLocationResolver {
 
-  ShardDimensions getDimensions(Map<String, Object> inputs);
+  @Override
+  public String resolveLocation(AtomicOperation<?> operation) {
+    return operation.getLocation();
+  }
 }

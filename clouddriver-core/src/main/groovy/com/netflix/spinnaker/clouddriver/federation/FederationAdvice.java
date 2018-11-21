@@ -18,16 +18,19 @@ package com.netflix.spinnaker.clouddriver.federation;
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer;
 import com.netflix.spinnaker.clouddriver.scattergather.reducer.DeepMergeResponseReducer;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FederationAdvice {
+  /**
+   * If set to true, the local instance will handle the request directly without additional routing
+   */
   boolean local() default false;
 
+  /**
+   * An override of the ResponseReducer used for a specific endpoint or controller.
+   */
   Class<? extends ResponseReducer> reducer() default DeepMergeResponseReducer.class;
 
   /**

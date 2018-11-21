@@ -37,7 +37,7 @@ import com.netflix.spinnaker.clouddriver.core.limits.ServiceLimitConfigurationBu
 import com.netflix.spinnaker.clouddriver.core.provider.CoreProvider
 import com.netflix.spinnaker.clouddriver.core.services.Front50Service
 import com.netflix.spinnaker.clouddriver.deploy.DescriptionAuthorizer
-import com.netflix.spinnaker.clouddriver.federation.FederationConfigurationProperties
+import com.netflix.spinnaker.clouddriver.federation.config.FederationConfigurationProperties
 import com.netflix.spinnaker.clouddriver.federation.config.ShardConfigurationProvider
 import com.netflix.spinnaker.clouddriver.federation.location.InstanceLocationProvider
 import com.netflix.spinnaker.clouddriver.federation.location.StaticInstanceLocationProvider

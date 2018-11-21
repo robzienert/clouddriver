@@ -17,7 +17,6 @@ package com.netflix.spinnaker.clouddriver.federation.config;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
-import com.netflix.spinnaker.clouddriver.federation.FederationConfigurationProperties;
 import com.netflix.spinnaker.clouddriver.federation.location.InstanceLocationProvider;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import com.netflix.spinnaker.kork.dynamicconfig.DynamicConfigService;

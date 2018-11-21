@@ -15,7 +15,7 @@
  */
 package com.netflix.spinnaker.clouddriver.federation.location;
 
-import com.netflix.spinnaker.clouddriver.federation.FederationConfigurationProperties;
+import com.netflix.spinnaker.clouddriver.federation.config.FederationConfigurationProperties;
 
 import javax.annotation.Nonnull;
 

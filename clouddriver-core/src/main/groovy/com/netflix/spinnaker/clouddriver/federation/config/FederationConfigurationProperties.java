@@ -13,11 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.federation.config;
 
-import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-public interface OperationLocationResolver {
+import java.util.*;
 
-  String resolveLocation(AtomicOperation<?> operation);
+@Data
+@ConfigurationProperties("federation")
+public class FederationConfigurationProperties {
+
+  String shardName;
+
+  String location;
+
+  Map<String, ShardProperties> shards = new HashMap<>();
+
+  @Data
+  public static class ShardProperties {
+    String baseUrl;
+    Integer priority = Integer.MIN_VALUE;
+    List<String> accounts = new ArrayList<>();
+    List<String> locations = new ArrayList<>();
+  }
 }

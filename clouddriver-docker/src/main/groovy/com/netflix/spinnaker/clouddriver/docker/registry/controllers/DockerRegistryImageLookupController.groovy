@@ -22,6 +22,7 @@ import com.netflix.spinnaker.clouddriver.docker.registry.DockerRegistryCloudProv
 import com.netflix.spinnaker.clouddriver.docker.registry.cache.Keys
 import com.netflix.spinnaker.clouddriver.docker.registry.provider.DockerRegistryProviderUtils
 import com.netflix.spinnaker.clouddriver.docker.registry.security.DockerRegistryNamedAccountCredentials
+import com.netflix.spinnaker.clouddriver.federation.FederationAdvice
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
+@FederationAdvice(local = true)
 @RequestMapping("/dockerRegistry/images")
 class DockerRegistryImageLookupController {
   @Autowired

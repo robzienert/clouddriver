@@ -15,26 +15,13 @@
  */
 package com.netflix.spinnaker.clouddriver.federation;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+public class FederationException extends RuntimeException {
 
-import java.util.*;
+  public FederationException(String message) {
+    super(message);
+  }
 
-@Data
-@ConfigurationProperties("federation")
-public class FederationConfigurationProperties {
-
-  String shardName;
-
-  String location;
-
-  Map<String, ShardProperties> shards = new HashMap<>();
-
-  @Data
-  public static class ShardProperties {
-    String baseUrl;
-    Integer priority = Integer.MIN_VALUE;
-    List<String> accounts = new ArrayList<>();
-    List<String> locations = new ArrayList<>();
+  public FederationException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

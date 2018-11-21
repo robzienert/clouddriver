@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.federation;
+package com.netflix.spinnaker.clouddriver.federation.location;
 
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 
-public class DefaultOperationLocationResolver implements OperationLocationResolver {
+public interface OperationLocationResolver {
 
-  @Override
-  public String resolveLocation(AtomicOperation<?> operation) {
-    return operation.getLocation();
-  }
+  String resolveLocation(AtomicOperation<?> operation);
 }

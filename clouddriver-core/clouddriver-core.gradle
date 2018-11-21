@@ -18,6 +18,7 @@ dependencies {
   compile project(':cats:cats-redis')
   compile project(':cats:cats-dynomite')
   compile project(':clouddriver-security')
+  compile project(':clouddriver-scattergather')
   testCompile project(':cats:cats-test')
   testCompile spinnaker.dependency('korkJedisTest')
   testCompile project(":clouddriver-core-tck")

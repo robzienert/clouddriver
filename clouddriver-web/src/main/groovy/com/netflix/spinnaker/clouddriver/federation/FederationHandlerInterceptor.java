@@ -42,7 +42,6 @@ import static java.lang.String.format;
  * call is made and merged in. Local dispatching is a future enhancement.
  *
  * TODO(rz): Some endpoints will need to be routed to a single shard, others scatter/gather, others return the local
- * TODO(rz): Need to support routing write operations
  */
 public class FederationHandlerInterceptor implements HandlerInterceptor {
 
@@ -61,7 +60,9 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
   }
 
   @Override
-  public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+  public boolean preHandle(HttpServletRequest request,
+                           HttpServletResponse response,
+                           Object handler) throws IOException {
     if (isScatteredRequest(request)) {
       // Handling a request that has already been routed by another shard. Move on with life.
       return true;
@@ -115,7 +116,10 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
   }
 
   @Override
-  public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws IOException {
+  public void postHandle(HttpServletRequest request,
+                         HttpServletResponse response,
+                         Object handler,
+                         ModelAndView modelAndView) throws IOException {
     // Do nothing.
   }
 
@@ -172,7 +176,11 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     if (advice != null) {
       return advice;
     }
-    // TODO rz - Support class-level
+
+    advice = method.getBeanType().getAnnotation(FederationAdvice.class);
+    if (advice != null) {
+      return advice;
+    }
 
     return null;
   }

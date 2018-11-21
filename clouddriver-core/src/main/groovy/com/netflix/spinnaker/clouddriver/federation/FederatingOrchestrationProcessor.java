@@ -17,6 +17,7 @@ package com.netflix.spinnaker.clouddriver.federation;
 
 import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.federation.location.InstanceLocationProvider;
+import com.netflix.spinnaker.clouddriver.federation.location.OperationLocationResolver;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import com.netflix.spinnaker.clouddriver.orchestration.OrchestrationProcessor;
 import org.slf4j.Logger;
@@ -49,9 +50,7 @@ public class FederatingOrchestrationProcessor implements OrchestrationProcessor 
       .collect(Collectors.toSet());
 
     if (locations.size() > 1) {
-      // TODO(rz): Need a specific exception for this
-      // Since we're building all of this for learning-mode and all that jazz, we don't want to blow things up yet
-      log.warn("Grouped atomic operations must all resolve to the same shard locations");
+      throw new FederationException("Grouped AtomicOperations must all resolve to the same shard");
     }
 
 //    Set<String> supportedLocations = locationsProvider.provide();
