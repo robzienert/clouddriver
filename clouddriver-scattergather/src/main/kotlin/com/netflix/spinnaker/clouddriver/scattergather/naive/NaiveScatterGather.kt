@@ -20,6 +20,7 @@ import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer
 import com.netflix.spinnaker.clouddriver.scattergather.ScatterGather
 import com.netflix.spinnaker.clouddriver.scattergather.ServletScatterGatherRequest
 import com.netflix.spinnaker.clouddriver.scattergather.client.ScatteredOkHttpCallFactory
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
@@ -33,16 +34,19 @@ import java.util.UUID
 class NaiveScatterGather(
   private val callFactory: ScatteredOkHttpCallFactory
 ) : ScatterGather {
-  override fun request(request: ServletScatterGatherRequest, reducer: ResponseReducer): ReducedResponse {
 
+  private val log = LoggerFactory.getLogger(NaiveScatterGather::class.java)
+
+  init {
+    log.info("Using Naive strategy")
+  }
+
+  override fun request(request: ServletScatterGatherRequest, reducer: ResponseReducer): ReducedResponse {
     val calls = callFactory.createCalls(
       UUID.randomUUID().toString(),
       request.targets,
       request.original
     )
-
-    val responses = calls.map { it.execute() }
-
-    return reducer.reduce(responses)
+    return reducer.reduce(calls.map { it.execute() })
   }
 }

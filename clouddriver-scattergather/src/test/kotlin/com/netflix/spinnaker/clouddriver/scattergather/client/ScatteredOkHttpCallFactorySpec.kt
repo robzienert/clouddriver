@@ -17,6 +17,8 @@ package com.netflix.spinnaker.clouddriver.scattergather.client
 
 import com.netflix.spinnaker.clouddriver.scattergather.client.ScatteredOkHttpCallFactory.Companion.SCATTER_HEADER
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okio.Buffer
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
@@ -83,20 +85,27 @@ internal object ScatteredOkHttpCallFactorySpec : Spek({
         expectThat(result)[0].and {
           get { request().tag() }.isEqualTo("workid:one")
           get { request().method() }.isEqualTo("POST")
-          get { request().url().toString() }.isEqualTo("http://clouddriver-one/hello")
+          get { request().url().toString() }.isEqualTo("http://clouddriver-one/ops")
           get { request().header("Content-Type") }.isEqualTo("application/json")
           get { request().header(SCATTER_HEADER) }.isEqualTo("1")
-          get { request().body().toString() }.isEqualTo(body)
+          get { request().readBody() }.isEqualTo(body)
         }
         expectThat(result)[1].and {
           get { request().tag() }.isEqualTo("workid:two")
           get { request().method() }.isEqualTo("POST")
-          get { request().url().toString() }.isEqualTo("http://clouddriver-two/hello")
+          get { request().url().toString() }.isEqualTo("http://clouddriver-two/ops")
           get { request().header("Content-Type") }.isEqualTo("application/json")
           get { request().header(SCATTER_HEADER) }.isEqualTo("1")
-          get { request().body().toString() }.isEqualTo(body)
+          get { request().readBody() }.isEqualTo(body)
         }
       }
     }
   }
 })
+
+private fun Request.readBody(): String? =
+  body()?.let {
+    val sink = Buffer()
+    it.writeTo(sink)
+    sink.readUtf8()
+  }

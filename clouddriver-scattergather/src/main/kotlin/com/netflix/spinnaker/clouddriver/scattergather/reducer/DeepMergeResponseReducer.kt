@@ -39,12 +39,9 @@ class DeepMergeResponseReducer : ResponseReducer {
   private val objectMapper = ObjectMapper()
 
   /**
-   * TODO(rz): Handle errors
+   * TODO(rz): Handle errors. Strategy for doing so is still up in the air.
    */
   override fun reduce(responses: List<Response>): ReducedResponse {
-    // TODO(rz): 404's, 429's... all of these things are legit to pass back to the client.
-//    requireAllSuccessful(responses)
-
     val body = mergeResponseBodies(responses)
 
     return ReducedResponse(
@@ -57,23 +54,29 @@ class DeepMergeResponseReducer : ResponseReducer {
     )
   }
 
+  /**
+   * Merges all response bodies into a single [JsonNode]. Uses the first response
+   * as a base, layering each subsequent non-null response on top.
+   */
   private fun mergeResponseBodies(responses: List<Response>): JsonNode? {
-    val mainBody = responses.first().body()?.string() ?: return null
-    val main = objectMapper.readTree(mainBody)
-    if (responses.size == 1) {
-      return main
-    }
-
-    // TODO(rz): This is bad.
-    responses
+    val bodies = responses
       .asSequence()
-      .filterNot { it == responses.first() }
       .map { it.body()?.string() }
       .filterNotNull()
       .toList()
-      .forEach {
-        mergeNodes(main, objectMapper.readTree(it))
-      }
+
+    if (bodies.isEmpty()) {
+      return null
+    }
+
+    val main = objectMapper.readTree(bodies.first())
+    if (bodies.size == 1) {
+      return main
+    }
+
+    bodies.subList(1, bodies.size).forEach {
+      mergeNodes(main, objectMapper.readTree(it))
+    }
 
     return main
   }
@@ -89,7 +92,6 @@ class DeepMergeResponseReducer : ResponseReducer {
       val valueToBeUpdated = mainNode.get(updatedFieldName)
       val updatedValue = updateNode.get(updatedFieldName)
 
-      // If the node is an @ArrayNode
       if (valueToBeUpdated != null && valueToBeUpdated is ArrayNode && updatedValue.isArray) {
         updatedValue.forEachIndexed { index, updatedChildNode ->
           if (!valueToBeUpdated.contains(updatedChildNode)) {
@@ -108,28 +110,18 @@ class DeepMergeResponseReducer : ResponseReducer {
     return mainNode
   }
 
-  /**
-   * TODO(rz): The heuristics in this method don't seem totally sane.
-   */
   private fun getResponseCode(responses: List<Response>): Int {
     if (hasErrors(responses)) {
       return HttpStatus.BAD_GATEWAY.value()
     }
 
     val distinctCodes = responses.asSequence().map { it.code() }.distinct().toList()
-    if (distinctCodes.size == 1) {
-      return distinctCodes[0]
+    return when {
+      distinctCodes.size == 1 -> distinctCodes[0]
+      distinctCodes.any { it == 404 } -> HttpStatus.NOT_FOUND.value()
+      distinctCodes.any { it == 429 } -> HttpStatus.TOO_MANY_REQUESTS.value()
+      else -> distinctCodes.sortedDescending().first()
     }
-    if (distinctCodes.all { it in 200..299 }) {
-      return HttpStatus.OK.value()
-    }
-    if (distinctCodes.any { it == 404 }) {
-      return HttpStatus.NOT_FOUND.value()
-    }
-    if (distinctCodes.any { it == 429 }) {
-      return HttpStatus.TOO_MANY_REQUESTS.value()
-    }
-    return HttpStatus.NON_AUTHORITATIVE_INFORMATION.value()
   }
 
   private fun hasErrors(responses: List<Response>): Boolean =
