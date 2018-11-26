@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.clouddriver
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.clouddriver.configuration.CredentialsConfiguration
 import com.netflix.spinnaker.clouddriver.federation.FederationHandlerInterceptor
@@ -61,6 +62,9 @@ public class WebConfig extends WebMvcConfigurerAdapter {
   @Autowired
   ScatterGather scatterGather
 
+  @Autowired
+  ObjectMapper objectMapper
+
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(
@@ -68,7 +72,7 @@ public class WebConfig extends WebMvcConfigurerAdapter {
         this.registry, "controller.invocations", ["account", "region"], ["BasicErrorController"]
       )
     )
-    registry.addInterceptor(new FederationHandlerInterceptor(shardConfigurationProvider, scatterGather))
+    registry.addInterceptor(new FederationHandlerInterceptor(shardConfigurationProvider, scatterGather, objectMapper))
   }
 
   @Bean

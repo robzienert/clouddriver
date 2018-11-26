@@ -15,13 +15,15 @@
  */
 package com.netflix.spinnaker.clouddriver.federation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.netflix.spinnaker.clouddriver.federation.config.Shard;
 import com.netflix.spinnaker.clouddriver.federation.config.ShardConfigurationProvider;
-import com.netflix.spinnaker.clouddriver.scattergather.*;
-import com.netflix.spinnaker.clouddriver.scattergather.reducer.DeepMergeResponseReducer;
 import com.netflix.spinnaker.clouddriver.scattergather.ReducedResponse;
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer;
+import com.netflix.spinnaker.clouddriver.scattergather.ScatterGather;
+import com.netflix.spinnaker.clouddriver.scattergather.ServletScatterGatherRequest;
+import com.netflix.spinnaker.clouddriver.scattergather.reducer.DeepMergeResponseReducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.method.HandlerMethod;
@@ -32,6 +34,7 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,8 +43,6 @@ import static java.lang.String.format;
 /**
  * Currently does not do local process dispatching. If the local shard is needed to fulfill a request, a separate
  * call is made and merged in. Local dispatching is a future enhancement.
- *
- * TODO(rz): Some endpoints will need to be routed to a single shard, others scatter/gather, others return the local
  */
 public class FederationHandlerInterceptor implements HandlerInterceptor {
 
@@ -52,17 +53,37 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
 
   private final ShardConfigurationProvider shardConfigurationProvider;
   private final ScatterGather scatterGather;
+  private final ObjectMapper objectMapper;
 
   public FederationHandlerInterceptor(ShardConfigurationProvider shardConfigurationProvider,
-                                      ScatterGather scatterGather) {
+                                      ScatterGather scatterGather,
+                                      ObjectMapper objectMapper) {
     this.shardConfigurationProvider = shardConfigurationProvider;
     this.scatterGather = scatterGather;
+    this.objectMapper = objectMapper;
   }
 
   @Override
   public boolean preHandle(HttpServletRequest request,
                            HttpServletResponse response,
                            Object handler) throws IOException {
+    try {
+      return federate(request, response, handler);
+    } catch (Exception e) {
+      // Error handling doesn't happen for HandlerInterceptors, so we need to do it ourselves.
+      // Additionally, we can't use `response.sendError` from preHandle.
+      ErrorResponse errorResponse = ErrorResponse.from(e);
+      response.setStatus(errorResponse.status);
+      response.setHeader("Content-Type", "application/json");
+      response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    }
+
+    return false;
+  }
+
+  private boolean federate(HttpServletRequest request,
+                        HttpServletResponse response,
+                        Object handler) throws IOException {
     if (isScatteredRequest(request)) {
       // Handling a request that has already been routed by another shard. Move on with life.
       return true;
@@ -93,17 +114,19 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     }
 
     if (shards.isEmpty()) {
-      response.sendError(500, format("No shard configured for location: %s, account: %s", location, account));
-      return false;
+      throw new InternalFederationException(
+        format("No shard configured for location: %s, account: %s", location, account),
+        500
+      );
     }
     log.debug("Selected shards: {}", shards.stream().map(Shard::getName).collect(Collectors.toList()));
 
     ServletScatterGatherRequest scatterRequest = new ServletScatterGatherRequest(
       shards.stream().collect(Collectors.toMap(Shard::getName, Shard::getBaseUrl)),
-      request
+      request,
+      Duration.ofSeconds(1) // TODO(rz): Need a better way to handle cascading timeouts / cancellations
     );
 
-    // TODO(rz): Need to pass along authz?
     ReducedResponse reducedResponse = scatterGather.request(scatterRequest, getReducer(handlerMethod));
     if (reducedResponse.isError()) {
       response.sendError(reducedResponse.getStatus(), reducedResponse.getBody());
@@ -111,7 +134,6 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
     }
 
     reducedResponse.applyTo(response).flush();
-
     return false;
   }
 
@@ -209,5 +231,37 @@ public class FederationHandlerInterceptor implements HandlerInterceptor {
 
   private static boolean isScatteredRequest(HttpServletRequest request) {
     return request.getHeader("X-Spinnaker-ScatteredRequest") != null;
+  }
+
+  private static class ErrorResponse {
+    public String error;
+    public String message;
+    public Integer status;
+    public Long timestamp;
+
+    static ErrorResponse from(Exception e) {
+      ErrorResponse error = new ErrorResponse();
+      error.error = e.getClass().getName();
+      error.message = e.getMessage();
+      error.timestamp = System.currentTimeMillis();
+
+      if (e instanceof InternalFederationException) {
+        error.status = ((InternalFederationException) e).status;
+      } else {
+        error.status = 500;
+      }
+
+      return error;
+    }
+  }
+
+  private static class InternalFederationException extends FederationException {
+
+    final Integer status;
+
+    InternalFederationException(String message, Integer status) {
+      super(message);
+      this.status = status;
+    }
   }
 }

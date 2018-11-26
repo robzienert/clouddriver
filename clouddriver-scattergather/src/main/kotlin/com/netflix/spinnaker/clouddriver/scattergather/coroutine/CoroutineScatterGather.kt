@@ -15,16 +15,20 @@
  */
 package com.netflix.spinnaker.clouddriver.scattergather.coroutine
 
+import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.clouddriver.scattergather.ReducedResponse
 import com.netflix.spinnaker.clouddriver.scattergather.ResponseReducer
 import com.netflix.spinnaker.clouddriver.scattergather.ScatterGather
+import com.netflix.spinnaker.clouddriver.scattergather.ScatterGatherException
 import com.netflix.spinnaker.clouddriver.scattergather.ServletScatterGatherRequest
 import com.netflix.spinnaker.clouddriver.scattergather.client.ScatteredOkHttpCallFactory
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.withTimeout
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -36,7 +40,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 class CoroutineScatterGather(
-  private val callFactory: ScatteredOkHttpCallFactory
+  private val callFactory: ScatteredOkHttpCallFactory,
+  private val registry: Registry
 ) : ScatterGather {
 
   private val log = LoggerFactory.getLogger(CoroutineScatterGather::class.java)
@@ -51,23 +56,50 @@ class CoroutineScatterGather(
         UUID.randomUUID().toString(),
         request.targets,
         request.original
-      )
-    ) ?: throw RuntimeException("Scatter failed to complete all requests")
+      ),
+      request.timeout
+    )
 
     return reducer.reduce(responses)
   }
 
-  private fun performScatter(calls: Collection<Call>): List<Response>? {
-    return runBlocking(Dispatchers.IO) {
-      // TODO(rz): The [ServletScatterGatherRequest] should include config on how long shards have to respond
-      withTimeoutOrNull(Duration.ofSeconds(60).toMillis()) {
-        calls
-          .map { call ->
-            async { call.await() }
-          }
-          .map { it.await() }
+  private fun performScatter(calls: Collection<Call>, timeout: Duration): List<Response> {
+    // Could do `withTimeoutOrNull`, but we want to capture & wrap the timeout exception
+    try {
+      return runBlocking(Dispatchers.IO) {
+        withTimeout(timeout.toMillis()) {
+          calls
+            .map { call ->
+              async { call.await() }
+            }
+            .map { it.await() }
+        }
       }
+    } catch (e: TimeoutCancellationException) {
+      throw ScatterGatherException("Scatter failed to complete all requests: ${e.message}", e)
     }
+  }
+}
+
+private class ContinuationCallback(
+  private val continuation: CancellableContinuation<Response>
+) : Callback {
+
+  override fun onFailure(call: Call, e: IOException) {
+    // TODO(rz): handle socket timeouts
+    continuation.resumeWithException(e)
+  }
+
+  override fun onResponse(call: Call, response: Response) {
+    if (retryableCodes.contains(response.code())) {
+      call.enqueue(this)
+    } else {
+      continuation.resume(response)
+    }
+  }
+
+  companion object {
+    private val retryableCodes = listOf(429, 503)
   }
 }
 
@@ -76,15 +108,6 @@ private suspend fun Call.await(): Response {
     continuation.invokeOnCancellation {
       cancel()
     }
-
-    enqueue(object : Callback {
-      override fun onFailure(call: Call, e: IOException) {
-        continuation.resumeWithException(e)
-      }
-
-      override fun onResponse(call: Call, response: Response) {
-        continuation.resume(response)
-      }
-    })
+    enqueue(ContinuationCallback(continuation))
   }
 }

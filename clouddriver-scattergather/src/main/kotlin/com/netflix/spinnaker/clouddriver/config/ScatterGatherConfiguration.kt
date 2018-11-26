@@ -15,6 +15,7 @@
  */
 package com.netflix.spinnaker.clouddriver.config
 
+import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.clouddriver.scattergather.ScatterGather
 import com.netflix.spinnaker.clouddriver.scattergather.client.ScatteredOkHttpCallFactory
 import com.netflix.spinnaker.clouddriver.scattergather.coroutine.CoroutineScatterGather
@@ -31,7 +32,7 @@ open class ScatterGatherConfiguration {
   }
 
   @Bean
-  open fun coroutineScatterGather(callFactory: ScatteredOkHttpCallFactory): ScatterGather {
-    return CoroutineScatterGather(callFactory)
+  open fun coroutineScatterGather(callFactory: ScatteredOkHttpCallFactory, registry: Registry): ScatterGather {
+    return CoroutineScatterGather(callFactory, registry)
   }
 }

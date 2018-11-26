@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.spinnaker.clouddriver.scattergather
+package com.netflix.spinnaker.clouddriver.scattergather;
 
-import java.time.Duration
-import javax.servlet.http.HttpServletRequest
+public class ScatterGatherException extends RuntimeException {
+  public ScatterGatherException(String message) {
+    super(message);
+  }
 
-/**
- * @param targets Target name (shard, etc) to base URL mapping
- * @param original The original servlet request that is initiating the scatter/gather operation
- * @param timeout The amount of time that scattered requests are given to complete
- */
-data class ServletScatterGatherRequest(
-  val targets: Map<String, String>,
-  val original: HttpServletRequest,
-  val timeout: Duration = Duration.ofSeconds(60)
-)
+  public ScatterGatherException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ScatterGatherException(Throwable cause) {
+    super(cause);
+  }
+}
