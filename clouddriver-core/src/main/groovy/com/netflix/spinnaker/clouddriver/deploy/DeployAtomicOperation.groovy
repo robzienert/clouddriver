@@ -44,6 +44,7 @@ class DeployAtomicOperation implements AtomicOperation<DeploymentResult> {
   }
 
   @Override
+
   DeploymentResult operate(List priorOutputs) {
     task.updateStatus TASK_PHASE, "Initializing phase."
     task.updateStatus TASK_PHASE, "Looking for ${description.getClass().simpleName} handler..."
