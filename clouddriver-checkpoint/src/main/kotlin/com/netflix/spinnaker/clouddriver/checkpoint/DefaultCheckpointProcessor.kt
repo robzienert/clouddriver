@@ -48,16 +48,13 @@ class DefaultCheckpointProcessor(
 
     val state = OperationState(correlationId)
 
-    StepInputs2(priorInputs, listOf(), description)
-
-    // TODO(rz): Make StepInputs contain all prior inputs, description, etc as well?
-    val stepInputs = mutableListOf<StepInputs>()
+    val stepInputs = StepInputs(priorInputs, mutableListOf(), description)
     for (step in steps) {
       log.trace("${state.id}: Starting step ${step.name()}")
-      val result = step.verify(priorInputs, stepInputs, description)
+      val result = step.verify(stepInputs)
       log.trace("${state.id}: Step verification result: ${result.action}")
 
-      stepInputs.add(result.workspace)
+      stepInputs.priorSteps.add(result.workspace)
 
       if (result.action == SKIP) {
         log.debug("${state.id}: Skipping step ${step.name()}")
@@ -76,7 +73,7 @@ class DefaultCheckpointProcessor(
         val stepLog = mutableListOf<StepLog>()
         val output = try {
           log.info("${state.id}: Running step ${step.name()}")
-          step.run(stepLog, priorInputs, stepInputs, description)
+          step.run(stepLog, stepInputs)
         } catch (e: Exception) {
           log.error("${state.id}: Failed running step ${step.name()}", e)
           StepOutput(

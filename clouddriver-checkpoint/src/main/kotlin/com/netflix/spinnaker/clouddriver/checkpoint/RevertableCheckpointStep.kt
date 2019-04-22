@@ -22,7 +22,7 @@ package com.netflix.spinnaker.clouddriver.checkpoint
  * Are we rolling forward or backwards? It could be that "revertable" steps are just composites steps: One forward
  * and one back?
  */
-interface RevertableCheckpointStep<T : StepInputs, S> : CheckpointStep {
+interface RevertableCheckpointStep<T : StepInputs<*>, S> : CheckpointStep {
 
   fun revert(inputs: T, createdState: S): StepOutput
 }

@@ -25,13 +25,10 @@ interface CheckpointStep {
    * Verifies whether or not the step needs to be run, returning any cloud state necessary for subsequent steps to
    * complete successfully.
    */
-  fun verify(priorOperationInputs: List<Any>, priorStepInputs: List<StepInputs>, description: Any): VerifyResult
+  fun <T> verify(inputs: StepInputs<T>): VerifyResult
 
-  /**
-   * TODO(rz): Make StepInputs contain all prior inputs, description, etc as well?
-   */
   fun <T> run(stepLog: MutableList<StepLog>,
-              priorInputs2: StepInputs2<T>): StepOutput
+              priorInputs2: StepInputs<T>): StepOutput
 }
 
 data class VerifyResult(

@@ -15,10 +15,8 @@
  */
 package com.netflix.spinnaker.clouddriver.checkpoint
 
-typealias StepInputs = Map<String, Any>
-
-data class StepInputs2<T>(
+data class StepInputs<T>(
   val priorInputs: List<Any>,
-  val priorSteps: List<Map<String, Any>>,
+  val priorSteps: MutableList<Map<String, Any>>,
   val description: T
 )

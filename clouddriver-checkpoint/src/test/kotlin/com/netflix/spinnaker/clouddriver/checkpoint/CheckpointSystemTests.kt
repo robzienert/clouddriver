@@ -15,21 +15,12 @@
  */
 package com.netflix.spinnaker.clouddriver.checkpoint
 
-class CheckpointedOperationBuilder {
+import org.jetbrains.spek.api.Spek
+import org.jetbrains.spek.api.dsl.describe
 
-  private val steps: MutableList<CheckpointStep> = mutableListOf()
+object CheckpointSystemTests : Spek({
 
-  fun <T : CheckpointStep> step(step: T): CheckpointedOperationBuilder {
-    steps.add(step)
-    return this
+  describe("") {
+
   }
-
-  fun step(step: CheckpointStep, name: String): CheckpointedOperationBuilder {
-    steps.add(step)
-    return this
-  }
-
-  fun operate(priorInputs: List<Any>): Any {
-    return "hi"
-  }
-}
+})
