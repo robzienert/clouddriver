@@ -15,20 +15,23 @@
  */
 package com.netflix.spinnaker.clouddriver.checkpoint
 
+/**
+ * TODO(rz): Add handle error callback method
+ */
 interface CheckpointStep {
 
-  fun name(): String {
-    return this::class.java.simpleName
-  }
+  val name: String
+    get() = this.javaClass.simpleName
 
   /**
    * Verifies whether or not the step needs to be run, returning any cloud state necessary for subsequent steps to
    * complete successfully.
    */
-  fun <T> verify(inputs: StepInputs<T>): VerifyResult
+  fun <T> verify(inputs: StepInputs<T>): VerifyResult = VerifyResult(action = VerifyResult.VerifyAction.RUN, workspace = mapOf())
 
   fun <T> run(stepLog: MutableList<StepLog>,
-              priorInputs2: StepInputs<T>): StepOutput
+              priorInputs: StepInputs<T>): StepOutput
+
 }
 
 data class VerifyResult(

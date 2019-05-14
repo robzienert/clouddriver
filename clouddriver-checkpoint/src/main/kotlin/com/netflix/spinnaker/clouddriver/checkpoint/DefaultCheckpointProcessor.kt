@@ -50,40 +50,44 @@ class DefaultCheckpointProcessor(
 
     val stepInputs = StepInputs(priorInputs, mutableListOf(), description)
     for (step in steps) {
-      log.trace("${state.id}: Starting step ${step.name()}")
+      log.trace("${state.id}: Starting step ${step.name}")
+      // TODO(rz): Verify should be conditional
       val result = step.verify(stepInputs)
       log.trace("${state.id}: Step verification result: ${result.action}")
 
       stepInputs.priorSteps.add(result.workspace)
 
       if (result.action == SKIP) {
-        log.debug("${state.id}: Skipping step ${step.name()}")
+        log.debug("${state.id}: Skipping step ${step.name}")
         continue
       }
 
       // TODO(rz): Throwing here will make it more ugly to do processor metrics
       if (result.action == ABORT) {
-        log.warn("${state.id}: Aborting step ${step.name()}")
+        log.warn("${state.id}: Aborting step ${step.name}")
         registry.counter(stepInvocationsId.withTag("action", ABORT.toString())).increment()
         throw AbortedCheckpointStepException("Operation was aborted by step verification")
       }
 
+      // TODO(rz): Add retry semantics into here as well
       try {
         val startedAt = Instant.now()
         val stepLog = mutableListOf<StepLog>()
         val output = try {
-          log.info("${state.id}: Running step ${step.name()}")
+          log.info("${state.id}: Running step ${step.name}")
           step.run(stepLog, stepInputs)
         } catch (e: Exception) {
-          log.error("${state.id}: Failed running step ${step.name()}", e)
+          // TODO(rz): CheckpointStep should have an interface for handling errors to determine if the step is truly
+          // terminal, should be retried, skipped, etc... (basically a verify-like interface)
+          log.error("${state.id}: Failed running step ${step.name}", e)
           StepOutput(
             status = StepStatus.TERMINAL,
             description = "Internal step error",
             log = stepLog.also {
               it.add(StepLog(
                 label = "Internal error",
-                userNotes = "Experienced an internal error while processing step: ${step.name()}",
-                operatorNotes = "Internal error in ${step.name()}: ${e.message}",
+                userNotes = "Experienced an internal error while processing step: ${step.name}",
+                operatorNotes = "Internal error in ${step.name}: ${e.message}",
                 cause = e
               ))
             },
@@ -92,10 +96,10 @@ class DefaultCheckpointProcessor(
           )
         }
         state.steps.add(output)
-        log.debug("${state.id}: Completed step ${step.name()}")
+        log.debug("${state.id}: Completed step ${step.name}")
 
         repository.commit(state)
-        log.trace("${state.id}: Committed step ${step.name()}")
+        log.trace("${state.id}: Committed step ${step.name}")
       } catch (e: Exception) {
         TODO()
       }
