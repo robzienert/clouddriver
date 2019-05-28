@@ -56,7 +56,7 @@ class LoadBalancerUpsertHandler {
     task.updateStatus BASE_PHASE, "Security groups updated on ${loadBalancerName}."
 
     if (listeners) {
-      // ignore all references to :0 => :0 listeners - leave them alone if they're there, do not add them if they're not
+      // ignore all references to :0 => :0 visitors - leave them alone if they're there, do not add them if they're not
       listeners = listeners.findAll(notLegacyListener);
       def existingListeners = loadBalancer.listenerDescriptions*.listener.findAll(notLegacyListener)
       def listenersToRemove = existingListeners.findAll {
@@ -65,7 +65,7 @@ class LoadBalancerUpsertHandler {
       }
       listeners.removeAll(listenersToRemove)
 
-      // no need to recreate existing listeners
+      // no need to recreate existing visitors
       listeners.removeAll(existingListeners)
 
       listenersToRemove.each {

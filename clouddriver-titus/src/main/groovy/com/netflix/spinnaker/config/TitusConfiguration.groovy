@@ -73,6 +73,9 @@ class TitusConfiguration {
     return new TitusClientProvider(registry, titusJobCustomizers.orElse(Collections.emptyList()), grpcChannelFactory, retrySupport)
   }
 
+  /**
+   * TODO(rz): Make this a component. wtf?
+   */
   @Bean
   TitusDeployHandler titusDeployHandler(TitusClientProvider titusClientProvider, AccountCredentialsRepository accountCredentialsRepository) {
     new TitusDeployHandler(titusClientProvider, accountCredentialsRepository)

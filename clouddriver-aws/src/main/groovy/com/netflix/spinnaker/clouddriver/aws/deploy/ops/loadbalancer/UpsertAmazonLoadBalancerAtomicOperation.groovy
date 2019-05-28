@@ -92,7 +92,7 @@ class UpsertAmazonLoadBalancerAtomicOperation implements AtomicOperation<UpsertA
 
       LoadBalancerDescription loadBalancer = null
 
-      task.updateStatus BASE_PHASE, "Setting up listeners for ${loadBalancerName} in ${region}..."
+      task.updateStatus BASE_PHASE, "Setting up visitors for ${loadBalancerName} in ${region}..."
       List<Listener> listeners = []
       description.listeners
         .each { UpsertAmazonLoadBalancerClassicDescription.Listener listener ->

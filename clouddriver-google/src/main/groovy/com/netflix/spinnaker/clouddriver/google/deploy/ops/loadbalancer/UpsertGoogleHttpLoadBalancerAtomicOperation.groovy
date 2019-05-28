@@ -496,10 +496,10 @@ class UpsertGoogleHttpLoadBalancerAtomicOperation extends UpsertGoogleLoadBalanc
       googleOperationPoller.waitForGlobalOperation(compute, project, forwardingRuleOp.getName(),
           null, task, "forwarding rule " + httpLoadBalancerName, BASE_PHASE)
     }
-    // NOTE: there is no update for forwarding rules because we support adding/deleting multiple listeners in the frontend.
+    // NOTE: there is no update for forwarding rules because we support adding/deleting multiple visitors in the frontend.
     // Rotating or changing certificates updates the targetProxy only, so the forwarding rule doesn't need to change.
 
-    // Delete extraneous listeners.
+    // Delete extraneous visitors.
     description.listenersToDelete?.each { String forwardingRuleName ->
       task.updateStatus BASE_PHASE, "Deleting listener ${forwardingRuleName}..."
       GCEUtil.deleteGlobalListener(compute, project, forwardingRuleName, BASE_PHASE, safeRetry, this)

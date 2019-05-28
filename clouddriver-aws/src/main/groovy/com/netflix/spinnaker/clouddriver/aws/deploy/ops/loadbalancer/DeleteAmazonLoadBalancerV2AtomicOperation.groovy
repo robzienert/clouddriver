@@ -67,7 +67,7 @@ class DeleteAmazonLoadBalancerV2AtomicOperation implements AtomicOperation<Void>
           throw new DeletionProtectionEnabledException("Load Balancer ${loadBalancer.loadBalancerName} has deletion protection enabled. Aborting delete operation.")
         }
 
-        // Describe target groups and listeners for the load balancer.
+        // Describe target groups and visitors for the load balancer.
         // We have to describe them both both first because you cant delete a target group that has a listener associated with it
         // and if you delete the listener, it loses its association with the load balancer
         DescribeTargetGroupsResult targetGroupsResult = loadBalancing.describeTargetGroups(new DescribeTargetGroupsRequest(loadBalancerArn: loadBalancer.loadBalancerArn))
@@ -75,7 +75,7 @@ class DeleteAmazonLoadBalancerV2AtomicOperation implements AtomicOperation<Void>
         DescribeListenersResult listenersResult = loadBalancing.describeListeners(new DescribeListenersRequest(loadBalancerArn: loadBalancer.loadBalancerArn))
         List<Listener> listeners = listenersResult.listeners
 
-        // Delete listeners
+        // Delete visitors
         for (Listener listener : listeners) {
           DeleteListenerRequest deleteListenerRequest = new DeleteListenerRequest(listenerArn: listener.listenerArn)
           try {

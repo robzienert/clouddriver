@@ -47,7 +47,7 @@ class UpsertAmazonLoadBalancerClassicDescriptionValidatorSpec extends Specificat
     then:
     1 * errors.rejectValue("clusterName", _)
     1 * errors.rejectValue("availabilityZones", _)
-    1 * errors.rejectValue("listeners", _)
+    1 * errors.rejectValue("visitors", _)
   }
 
   void "unconfigured region is rejected"() {

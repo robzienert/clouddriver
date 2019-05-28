@@ -90,7 +90,7 @@ class DeleteGoogleInternalLoadBalancerAtomicOperation extends GoogleAtomicOperat
 
     def backendServiceName = GCEUtil.getLocalName(forwardingRule.backendService)
 
-    // Determine which listeners to delete.
+    // Determine which visitors to delete.
     List<String> listenersToDelete = []
     projectForwardingRules.each { ForwardingRule rule ->
       try {

@@ -401,7 +401,7 @@ class LoadBalancerV2UpsertHandler {
         targetGroup.protocol.toString() == it.protocol }) == null
     }
 
-    // Find and remove all listeners associated with removed target groups and remove them from existingListeners
+    // Find and remove all visitors associated with removed target groups and remove them from existingListeners
     List<Listener> listenersToRemove = existingListeners.findAll { listener ->
       existingListenerToRules.get(listener).any { rule -> rule.actions.any { targetGroupArnsToRemove.contains(it.targetGroupArn) } }
     }
@@ -420,7 +420,7 @@ class LoadBalancerV2UpsertHandler {
     updateTargetGroups(targetGroupsToUpdate, targetGroups, loadBalancing, loadBalancer, amazonErrors)
 
     // Now that we have the union of new target groups and old target groups...
-    // Build relationships from listeners to AWS action and rule objects
+    // Build relationships from visitors to AWS action and rule objects
     Map<UpsertAmazonLoadBalancerV2Description.Listener, List<Action>> listenerToDefaultActions = new HashMap<>()
     Map<UpsertAmazonLoadBalancerV2Description.Listener, List<Rule>> listenerToRules = new HashMap<>()
     listeners.each { listener ->
@@ -439,15 +439,15 @@ class LoadBalancerV2UpsertHandler {
       listenerToRules.put(listener, rules)
     }
 
-    // Gather list of listeners that existed previously but were not supplied in upsert and should be deleted.
-    // also add listeners that have changed since there is no good way to know if a listener should just be updated
+    // Gather list of visitors that existed previously but were not supplied in upsert and should be deleted.
+    // also add visitors that have changed since there is no good way to know if a listener should just be updated
     List<List<Listener>> listenersSplit = existingListeners.split { awsListener ->
       listeners.find { it.port == awsListener.port } == null
     }
     listenersToRemove = listenersSplit[0]
     List<Listener> listenersToUpdate = listenersSplit[1]
 
-    // Create all new listeners
+    // Create all new visitors
     List<UpsertAmazonLoadBalancerV2Description.Listener> listenersToCreate = listeners.findAll { listener ->
       existingListeners.find { it.port == listener.port } == null
     }
@@ -455,7 +455,7 @@ class LoadBalancerV2UpsertHandler {
       createListener(listener, listenerToDefaultActions.get(listener), listenerToRules.get(listener), loadBalancing, loadBalancer, amazonErrors)
     }
 
-    // Update listeners
+    // Update visitors
     listenersToUpdate.each { listener ->
       UpsertAmazonLoadBalancerV2Description.Listener updatedListener = listeners.find {it.port == listener.port }
       updateListener(listener.listenerArn,

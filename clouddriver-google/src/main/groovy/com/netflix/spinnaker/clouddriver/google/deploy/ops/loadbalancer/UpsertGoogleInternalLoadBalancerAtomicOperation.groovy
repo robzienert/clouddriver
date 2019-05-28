@@ -258,7 +258,7 @@ class UpsertGoogleInternalLoadBalancerAtomicOperation extends GoogleAtomicOperat
       insertRegionalForwardingRule(compute, project, region, updatedForwardingRule)
     }
 
-    // Delete extraneous listeners.
+    // Delete extraneous visitors.
     description.listenersToDelete?.each { String forwardingRuleName ->
       deleteRegionalForwardingRule(compute, project, region, forwardingRuleName)
     }
