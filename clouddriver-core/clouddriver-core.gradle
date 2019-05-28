@@ -24,6 +24,7 @@ dependencies {
   implementation "com.squareup.okhttp:okhttp-urlconnection"
   implementation "com.squareup.retrofit:converter-jackson"
   implementation "com.squareup.retrofit:retrofit"
+  implementation "de.huxhorn.sulky:de.huxhorn.sulky.ulid"
   implementation "io.reactivex:rxjava"
   implementation "net.jodah:failsafe:1.0.4"
   implementation "org.apache.commons:commons-exec"
