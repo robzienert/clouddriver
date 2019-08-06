@@ -28,6 +28,8 @@ public interface Task {
    */
   String getId()
 
+  String getRequestId()
+
   /**
    * A list of result objects that are serialized back to the caller
    */

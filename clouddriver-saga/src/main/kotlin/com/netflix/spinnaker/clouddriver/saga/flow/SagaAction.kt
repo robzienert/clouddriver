@@ -48,8 +48,7 @@ interface SagaAction<in T : SagaCommand> {
     val nextCommand: SagaCommand?,
     val events: List<SagaEvent>
   ) {
-    companion object {
-      val EMPTY: Result = Result(null, listOf())
-    }
+    constructor() : this(null)
+    constructor(nextCommand: SagaCommand?) : this(nextCommand, listOf())
   }
 }
