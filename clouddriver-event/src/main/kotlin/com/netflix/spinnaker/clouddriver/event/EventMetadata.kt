@@ -27,6 +27,9 @@ import java.time.Instant
  * @param source Where/what generated the event
  */
 data class EventMetadata(
+  val id: String,
+  val aggregateType: String,
+  val aggregateId: String,
   val sequence: Long,
   val originatingVersion: Long,
   val timestamp: Instant = Instant.now(),
