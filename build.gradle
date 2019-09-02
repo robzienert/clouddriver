@@ -84,8 +84,9 @@ allprojects {
     test {
       if (project.hasProperty("testFilter")) {
         project.property("testFilter").split(",").each {
-          def pattern = /([A-Za-z0-9]+).(kt|groovy|java)$/
-          includeTest (it =~ pattern)[0][1].toString()
+          def matcher = (it =~ /([A-Za-z0-9]+).(kt|groovy|java)$/)
+          matcher.matches()
+          includeTestsMatching matcher[0][1]
         }
       }
 
