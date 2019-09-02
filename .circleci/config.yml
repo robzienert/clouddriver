@@ -13,7 +13,7 @@ workflows:
 
 jobs:
   build:
-    machine: false
+    machine: true
     parallelism: 4
     resource_class: medium
     steps:
