@@ -29,20 +29,19 @@ jobs:
           keys:
             - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
             - gradle-
-      - run:
-          name: Install
-          command: |
-            GRADLE="./gradlew --no-daemon --max-workers=2"
-            export GRADLE_OPTS="-Xmx4g -Xms4g"
+      # - run:
+      #     name: Install
+      #     command: |
+      #       GRADLE="./gradlew --no-daemon --max-workers=2"
+      #       export GRADLE_OPTS="-Xmx4g -Xms4g"
 
-            if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
-              echo -e "Assemble Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
-              $GRADLE assemble
-            else
-              echo -e 'WARN: Only building on CircleCI'
-              $GRADLE assemble
-            fi
-
+      #       if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
+      #         echo -e "Assemble Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
+      #         $GRADLE assemble
+      #       else
+      #         echo -e 'WARN: Only building on CircleCI'
+      #         $GRADLE assemble
+      #       fi
 
       - run:
           name: Build
@@ -51,12 +50,22 @@ jobs:
             #export GRADLE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
             export GRADLE_OPTS="-Xmx4g -Xms4g"
 
+            # Get list of classnames of tests that should run on this node
+            CLASSNAMES=$(circleci tests glob "**/src/test/**/*.{kt,java,groovy}" \
+              | cut -c 1- | sed 's@/@.@g' \
+              | sed 's/.\{5\}$//' \
+              | circleci tests split --split-by=timings --timings-type=classname)
+
+            # Format the arguments to "./gradlew test"
+            GRADLE_ARGS=$(echo $CLASSNAMES | awk '{for (i=1; i<=NF; i++) print "--tests",$i}')
+            echo "Prepared arguments for Gradle: $GRADLE_ARGS"
+
             if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
               echo -e "Build Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
-              $GRADLE build javadoc
+              ./gradlew test $GRADLE_ARGS
             else
               echo -e 'WARN: Only building on CircleCI'
-              $GRADLE build
+              ./gradlew test $GRADLE_ARGS
             fi
       - save_cache:
           when: always
