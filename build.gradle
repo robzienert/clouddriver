@@ -85,8 +85,7 @@ allprojects {
       if (project.hasProperty("testFilter")) {
         project.property("testFilter").split(",").each {
           def matcher = (it =~ /([A-Za-z0-9]+).(kt|groovy|java)$/)
-          matcher.matches()
-          includeTestsMatching matcher[0][1]
+          includeTestsMatching matcher.group(1)
         }
       }
 
