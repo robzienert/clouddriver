@@ -120,3 +120,12 @@ subprojects { project ->
 }
 
 defaultTasks ':clouddriver-web:run'
+
+check {
+  if (project.hasProperty("testFilter")) {
+    List<String> props = project.getProperties().get("testFilter").split("\\s+")
+    props.each {
+      include(it.replace("src/integration-test/groovy/com/", "**/").replace(".groovy", ".class"))
+    }
+  }
+}
