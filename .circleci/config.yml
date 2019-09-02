@@ -31,45 +31,21 @@ jobs:
           keys:
             - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
             - gradle-
-      # - run:
-      #     name: Install
-      #     command: |
-      #       GRADLE="./gradlew --no-daemon --max-workers=2"
-      #       export GRADLE_OPTS="-Xmx4g -Xms4g"
-
-      #       if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
-      #         echo -e "Assemble Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
-      #         $GRADLE assemble
-      #       else
-      #         echo -e 'WARN: Only building on CircleCI'
-      #         $GRADLE assemble
-      #       fi
 
       - run:
           name: Build
           command: |
-            GRADLE="./gradlew --no-daemon --max-workers=2"
-            #export GRADLE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
-            export GRADLE_OPTS="-Xmx4g -Xms4g"
-
             # Get list of classnames of tests that should run on this node
             CLASSNAMES=$(circleci tests glob "**/src/test/**/*.{kt,java,groovy}" \
               | circleci tests split --show-counts=true --total=4 --split-by=timings --timings-type=classname \
               | paste -sd "," -)
 
+            GRADLE="./gradlew --no-daemon --max-workers=2 -PtestFilter=$CLASSNAMES"
+            #export GRADLE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+            export GRADLE_OPTS="-Xmx4g -Xms4g"
 
-            # Format the arguments to "./gradlew test"
-            # GRADLE_ARGS=$(echo $CLASSNAMES | awk '{for (i=1; i<=NF; i++) print "--tests",$i}')
-            GRADLE_ARGS=$CLASSNAMES
-            echo "Prepared filter for Gradle: $CLASSNAMES"
-
-            if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
-              echo -e "Build Pull Request $CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
-              ./gradlew check --tests $CLASSNAMES
-            else
-              echo -e 'WARN: Only building on CircleCI'
-              ./gradlew check --tests $CLASSNAMES
-            fi
+            echo -e 'WARN: Only building on CircleCI'
+            ./gradlew check
       - save_cache:
           when: always
           paths:
