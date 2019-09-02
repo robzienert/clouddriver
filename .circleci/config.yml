@@ -54,7 +54,9 @@ jobs:
 
             # Get list of classnames of tests that should run on this node
             CLASSNAMES=$(circleci tests glob "**/src/test/**/*.{kt,java,groovy}" \
-              | circleci tests split --show-counts=true --total=4 --split-by=timings --timings-type=classname)
+              | circleci tests split --show-counts=true --total=4 --split-by=timings --timings-type=classname \
+              | paste -sd "," -)
+
 
             # Format the arguments to "./gradlew test"
             # GRADLE_ARGS=$(echo $CLASSNAMES | awk '{for (i=1; i<=NF; i++) print "--tests",$i}')
@@ -63,10 +65,10 @@ jobs:
 
             if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
               echo -e "Build Pull Request $CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
-              ./gradlew check -i PtestFilter="$CLASSNAMES" $GRADLE_ARGS
+              ./gradlew check --tests $CLASSNAMES
             else
               echo -e 'WARN: Only building on CircleCI'
-              ./gradlew check -i PtestFilter="$CLASSNAMES" $GRADLE_ARGS
+              ./gradlew check --tests $CLASSNAMES
             fi
       - save_cache:
           when: always
