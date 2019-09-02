@@ -85,7 +85,7 @@ allprojects {
       if (project.hasProperty("testFilter")) {
         project.property("testFilter").split(",").each {
           def pattern = /([A-Za-z0-9]+).(kt|groovy|java)$/
-          includeTest (it =~ pattern)[0][1]
+          includeTest (it =~ pattern)[0][1].toString()
         }
       }
 
