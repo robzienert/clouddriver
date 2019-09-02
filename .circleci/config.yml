@@ -32,8 +32,8 @@ jobs:
       - run:
           name: Install
           command: |
-            GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=12"
-            export GRADLE_OPTS="-Xmx16g -Xms16g"
+            GRADLE="./gradlew --no-daemon --max-workers=2"
+            export GRADLE_OPTS="-Xmx4g -Xms4g"
 
             if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
               echo -e "Assemble Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
@@ -47,9 +47,9 @@ jobs:
       - run:
           name: Build
           command: |
-            GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=12"
+            GRADLE="./gradlew --no-daemon --max-workers=2"
             #export GRADLE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
-            export GRADLE_OPTS="-Xmx16g -Xms16g"
+            export GRADLE_OPTS="-Xmx4g -Xms4g"
 
             if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
               echo -e "Build Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
