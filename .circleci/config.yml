@@ -1,4 +1,4 @@
-#CircleCI config schema is versioned. 
+# CircleCI config schema is versioned.
 version: 2.1
 
 # orbs are config packages to include.
@@ -13,9 +13,9 @@ workflows:
 
 jobs:
   build:
-    machine: true
-    parallelism: 12
-    resource_class: xlarge
+    machine: false
+    parallelism: 4
+    resource_class: medium
     steps:
       - checkout
       - run:
@@ -26,7 +26,7 @@ jobs:
           command: find . -name 'build.gradle' | sort | xargs cat | shasum | awk '{print
             $1}' > /tmp/gradle_cache_seed
       - restore_cache:
-          keys: 
+          keys:
             - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
             - gradle-
       - run:
