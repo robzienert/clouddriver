@@ -22,6 +22,7 @@ import com.netflix.spinnaker.clouddriver.deploy.DescriptionValidator
 import com.netflix.spinnaker.clouddriver.exceptions.CloudProviderNotFoundException
 import com.netflix.spinnaker.clouddriver.security.ProviderVersion
 import com.netflix.spinnaker.kork.exceptions.UserException
+import com.netflix.spinnaker.kork.dynamicconfig.DynamicConfigService
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.NoSuchBeanDefinitionException
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,6 +36,9 @@ class AnnotationsBasedAtomicOperationsRegistry extends ApplicationContextAtomicO
 
   @Autowired
   List<CloudProvider> cloudProviders
+
+  @Autowired
+  DynamicConfigService dynamicConfigService
 
   @Override
   AtomicOperationConverter getAtomicOperationConverter(String description, String cloudProvider, ProviderVersion version) {
@@ -76,6 +80,21 @@ class AnnotationsBasedAtomicOperationsRegistry extends ApplicationContextAtomicO
     }
 
     if (converters.size() > 1) {
+      // TODO(rz): This is a hack. I think we'll need a clearer way for Orca to tell clouddriver that it wants to use
+      //  the new atomic operations via the description payload.
+      String preferredConverter = dynamicConfigService.getConfig(
+        String.class,
+        "atomic-operations.${cloudProvider}.${description}.${version}.preferred-class",
+        null
+      )
+      if (preferredConverter != null) {
+        def converter = converters.find { it.class.name == preferredConverter }
+        if (converter != null) {
+          log.info("Found more than one atomic operation converter for description '$description' and cloud provider '$cloudProvider' but found preffered configuration: '$converter'")
+          return (AtomicOperationConverter) converter
+        }
+      }
+
       throw new RuntimeException(
         "More than one (${converters.size()}) atomic operation converters found for description '${description}' and cloud provider " +
           "'${cloudProvider}' at version '${version}'"
