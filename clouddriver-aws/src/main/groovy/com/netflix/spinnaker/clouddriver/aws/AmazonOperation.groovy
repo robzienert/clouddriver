@@ -25,11 +25,4 @@ import java.lang.annotation.Target
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AmazonOperation {
   String value()
-
-  Version version() default Version.V1
-
-  enum Version {
-    V1,
-    V2
-  }
 }
