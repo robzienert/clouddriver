@@ -21,6 +21,7 @@ import static java.lang.String.format;
 
 import com.netflix.spinnaker.clouddriver.model.ServerGroup;
 import com.netflix.spinnaker.kork.exceptions.IntegrationException;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -44,9 +45,8 @@ public class ScaleExactResizeStrategy implements ResizeStrategy {
     ServerGroup.Capacity mergedCapacity =
         mergeConfiguredCapacityWithCurrent(targetCapacity, currentCapacity);
 
-    // TODO(rz): mergedCapacity must get ResizeStrategySupport.performScalingAndPinning support
-
-    return new ResizeStrategy.CapacitySet(currentCapacity, mergedCapacity);
+    return new ResizeStrategy.CapacitySet(
+        currentCapacity, resizeStrategySupport.performScalingAndPinning(mergedCapacity, command));
   }
 
   private static ServerGroup.Capacity mergeConfiguredCapacityWithCurrent(
@@ -60,9 +60,9 @@ public class ScaleExactResizeStrategy implements ResizeStrategy {
 
     if (maxConfigured) {
       result.setMax(configured.getMax());
-      result.setMin(Math.min(result.getMin(), configured.getMin()));
+      result.setMin(Math.min(result.getMin(), configured.getMax()));
     } else {
-      result.setMax(Math.max(result.getMin(), current.getMax()));
+      result.setMax(Math.max(result.getMin(), orZero(current.getMax())));
     }
 
     if (desiredConfigured) {
@@ -94,5 +94,9 @@ public class ScaleExactResizeStrategy implements ResizeStrategy {
                     format(
                         "Could not find ClusterProvider for cloud provider '%s'",
                         command.getCloudProvider())));
+  }
+
+  private static int orZero(Integer value) {
+    return Optional.ofNullable(value).orElse(0);
   }
 }

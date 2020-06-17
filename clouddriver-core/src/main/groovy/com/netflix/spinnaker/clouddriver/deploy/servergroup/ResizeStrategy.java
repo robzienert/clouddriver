@@ -18,30 +18,84 @@ package com.netflix.spinnaker.clouddriver.deploy.servergroup;
 
 import com.netflix.spinnaker.clouddriver.model.ServerGroup;
 import com.netflix.spinnaker.kork.annotations.NonnullByDefault;
+import java.util.Collection;
+import lombok.Builder;
+import lombok.Data;
 import lombok.Value;
 
 @NonnullByDefault
 public interface ResizeStrategy {
 
+  /** Whether or not the strategy handles the given action. */
   boolean handles(ResizeAction action);
 
+  /** Calculate the target server group capacity. */
   CapacitySet capacity(ResizeCapacityCommand command);
 
   enum ResizeAction {
+    /** Scale to the exact capacity provided. */
     SCALE_EXACT,
+
+    /** Scale up by a static number or by a certain percentage. */
     SCALE_UP,
+
+    /** Scale down by a static number or by a certain percentage. */
     SCALE_DOWN,
+
+    /**
+     * Scale to match the given cluster's capacity, using an associated server group resolution
+     * strategy.
+     */
     SCALE_TO_CLUSTER,
+
+    /** Scale to match the a server group's capacity. */
     SCALE_TO_SERVER_GROUP
   }
 
-  @Value
+  @Data
+  @Builder
   class ResizeCapacityCommand {
+    ResizeAction action;
+
     ServerGroup.Capacity capacity;
+
     String cloudProvider;
     String credentials;
     String location;
     String serverGroupName;
+
+    Source source;
+
+    /** Whether or not `min` capacity should be set to `desired` capacity. */
+    boolean pinMinimumCapacity;
+
+    /** TODO(rz): Purpose? */
+    boolean unpinMinimumCapacity;
+
+    /** TODO(rz): Purpose? */
+    boolean pinCapacity;
+
+    /** TODO(rz): Purpose? */
+    Integer scalePct;
+
+    /** TODO(rz): Purpose? */
+    Integer scaleNum;
+  }
+
+  @Data
+  @Builder
+  class Source {
+    // TODO(rz): What is actually used / preferred?
+    Collection<String> zones;
+    Collection<String> regions;
+    String region;
+    String zone;
+
+    String serverGroupName;
+    String credentials;
+    String cloudProvider;
+
+    ServerGroup.Capacity capacity;
   }
 
   @Value

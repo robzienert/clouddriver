@@ -214,17 +214,19 @@ public interface ServerGroup {
   @NoArgsConstructor
   @AllArgsConstructor
   @Data
-  public static class Capacity {
+  class Capacity {
     /**
      * Minimum number of instances required in this server group. If provider specific {@code
      * ServerGroup} does not have a notion of min then this should be same as {@code desired}
      */
     private Integer min;
+
     /**
      * Max number of instances required in this server group. If provider specific {@code
      * ServerGroup} does not have a notion of max then this should be same as {@code desired}
      */
     private Integer max;
+
     /** Desired number of instances required in this server group */
     private Integer desired;
 
