@@ -125,6 +125,15 @@ class AnnotationsBasedAtomicOperationsRegistry extends ApplicationContextAtomicO
 
     validators = VersionedOperationHelper.findVersionMatches(version, validators)
 
+    if (validators.size() > 1) {
+      def preferredClass = validators.find { it.class.name == "com.netflix.spinnaker.clouddriver.aws.deploy.validators.ResizeServerGroupDescriptionValidator" }
+      if (preferredClass != null) {
+        return (DescriptionValidator) preferredClass
+      }
+
+      throw new RuntimeException("Oops")
+    }
+
     return validators ? (DescriptionValidator) validators[0] : null
   }
 

@@ -47,14 +47,31 @@ public class ResizeServerGroupDescription extends AbstractAmazonCredentialsDescr
   /** TODO(rz): Oddly named... probably not worth going 1-for-1 on Orca migration here. */
   private ResizeStrategy.ResizeAction strategy;
 
+  private boolean pinMinimumCapacity;
+
+  private boolean unpinMinimumCapacity;
+
+  private boolean pinCapacity;
+
+  private Integer scalePct;
+
+  private Integer scaleNum;
+
   @JsonIgnore
   @Override
   public ResizeStrategy.ResizeCapacityCommand toResizeCapacityCommand() {
-    return new ResizeStrategy.ResizeCapacityCommand(
-        capacity,
-        getCredentials().getCloudProvider(),
-        getCredentials().getName(),
-        location,
-        serverGroupName);
+    return ResizeStrategy.ResizeCapacityCommand.builder()
+        .action(strategy)
+        .capacity(capacity)
+        .cloudProvider(getCredentials().getCloudProvider())
+        .credentials(getCredentials().getName())
+        .location(location)
+        .serverGroupName(serverGroupName)
+        .pinMinimumCapacity(pinMinimumCapacity)
+        .unpinMinimumCapacity(unpinMinimumCapacity)
+        .pinCapacity(pinCapacity)
+        .scalePct(scalePct)
+        .scaleNum(scaleNum)
+        .build();
   }
 }

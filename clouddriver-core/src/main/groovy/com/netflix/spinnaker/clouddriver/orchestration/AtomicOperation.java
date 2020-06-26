@@ -54,6 +54,12 @@ public interface AtomicOperation<R> {
     return null;
   }
 
+  /** Logic for {@code OperationLifecycle.FAILURE}. */
+  @Nullable
+  default Object onFailure() {
+    return null;
+  }
+
   default Collection<OperationEvent> getEvents() {
     return Collections.emptyList();
   }
@@ -65,6 +71,7 @@ public interface AtomicOperation<R> {
    */
   enum OperationLifecycle {
     BEFORE,
-    AFTER;
+    AFTER,
+    FAILURE;
   }
 }

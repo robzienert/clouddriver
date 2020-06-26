@@ -58,6 +58,8 @@ public class LifecycleAwareAtomicOperation implements AtomicOperation<Object> {
         return atomicOperation.beforeOperate();
       case AFTER:
         return atomicOperation.afterOperate();
+      case FAILURE:
+        return atomicOperation.onFailure();
       default:
         throw new SystemException(format("Unsupported lifecycle: '%s'", operationLifecycle));
     }

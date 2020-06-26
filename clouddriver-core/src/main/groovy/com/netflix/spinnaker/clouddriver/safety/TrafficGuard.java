@@ -36,11 +36,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import retrofit.RetrofitError;
 
-@Component
 public class TrafficGuard {
   private static final String MIN_CAPACITY_RATIO = "traffic-guards.min-capacity-ratio";
   private final Logger log = LoggerFactory.getLogger(getClass());
@@ -52,7 +49,6 @@ public class TrafficGuard {
 
   private final Id savesId;
 
-  @Autowired
   public TrafficGuard(
       List<ClusterProvider<?>> clusterProviders,
       Optional<Front50Service> front50Service,
@@ -81,10 +77,10 @@ public class TrafficGuard {
   }
 
   public void verifyTrafficRemoval(
-      String serverGroupName,
+      String cloudProvider,
       String account,
       String location,
-      String cloudProvider,
+      String serverGroupName,
       String operationDescriptor) {
 
     Moniker serverGroupMoniker = NamerRegistry.getDefaultNamer().deriveMoniker(serverGroupName);

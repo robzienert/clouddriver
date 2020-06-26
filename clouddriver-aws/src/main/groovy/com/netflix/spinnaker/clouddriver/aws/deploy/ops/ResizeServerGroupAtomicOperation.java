@@ -84,6 +84,8 @@ public class ResizeServerGroupAtomicOperation implements AtomicOperation<Void> {
     ResizeAsgDescription.AsgTargetDescription targetAsg =
         new ResizeAsgDescription.AsgTargetDescription();
     targetAsg.setCapacity(capacitySet.getTarget());
+    targetAsg.setRegion(description.getLocation());
+    targetAsg.setServerGroupName(description.getServerGroupName());
 
     ResizeAsgDescription.Constraints constraints = new ResizeAsgDescription.Constraints();
     constraints.setCapacity(capacitySet.getOriginal());
@@ -95,7 +97,8 @@ public class ResizeServerGroupAtomicOperation implements AtomicOperation<Void> {
 
     AtomicOperationConverter converter =
         applicationContext.getBean(ResizeAsgAtomicOperationConverter.class);
-    AtomicOperation operation = converter.convertOperation(resizeDescription);
+    AtomicOperation operation = converter.convert(resizeDescription);
+    applicationContext.getAutowireCapableBeanFactory().autowireBean(operation);
 
     operation.operate(priorOutputs);
 
@@ -129,7 +132,8 @@ public class ResizeServerGroupAtomicOperation implements AtomicOperation<Void> {
     suspendDescription.setRegion(description.getLocation());
     suspendDescription.setProcesses(SCALING_PROCESS_SUSPENSIONS);
 
-    AtomicOperation operation = converter.convertOperation(suspendDescription);
+    AtomicOperation operation = converter.convert(suspendDescription);
+    applicationContext.getAutowireCapableBeanFactory().autowireBean(operation);
     operation.operate(Collections.emptyList());
 
     return null;
@@ -147,9 +151,17 @@ public class ResizeServerGroupAtomicOperation implements AtomicOperation<Void> {
     resumeDescription.setRegion(description.getLocation());
     resumeDescription.setProcesses(SCALING_PROCESS_SUSPENSIONS);
 
-    AtomicOperation operation = converter.convertOperation(resumeDescription);
+    AtomicOperation operation = converter.convert(resumeDescription);
+    applicationContext.getAutowireCapableBeanFactory().autowireBean(operation);
     operation.operate(Collections.emptyList());
 
+    return null;
+  }
+
+  @Nullable
+  @Override
+  public Object onFailure() {
+    // TODO(rz): Restore capacity, resume processes
     return null;
   }
 }

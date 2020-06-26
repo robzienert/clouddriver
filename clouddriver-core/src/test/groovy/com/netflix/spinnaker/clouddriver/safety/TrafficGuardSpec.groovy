@@ -97,7 +97,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo", enabled: false])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     1 * clusterProvider.getCluster("app", "test", "app-foo", false) >> makeCluster([
@@ -112,7 +112,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     def e = thrown(TrafficGuardException)
@@ -129,7 +129,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval("app-foo-v999", "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", "app-foo-v999")
 
     then:
     def e = thrown(TrafficGuardException)
@@ -145,7 +145,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     thrown(TrafficGuardException)
@@ -164,7 +164,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     notThrown(TrafficGuardException)
@@ -314,7 +314,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     thrown(TrafficGuardException)
@@ -329,7 +329,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     thrown(TrafficGuardException)
@@ -345,7 +345,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     noExceptionThrown()
@@ -360,7 +360,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     def e = thrown(TrafficGuardException)
@@ -373,7 +373,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     notThrown(TrafficGuardException)
@@ -389,7 +389,7 @@ class TrafficGuardSpec extends Specification {
     addGuard([account: "test", location: "us-east-1", stack: "foo"])
 
     when:
-    trafficGuard.verifyTrafficRemoval(targetName, "test", location, "aws", "x")
+    trafficGuard.verifyTrafficRemoval("x", "test", location, "aws", targetName)
 
     then:
     thrown(TrafficGuardException)

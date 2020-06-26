@@ -19,12 +19,11 @@ package com.netflix.spinnaker.clouddriver.deploy.servergroup;
 import static com.netflix.spinnaker.clouddriver.deploy.servergroup.ResizeStrategy.ResizeAction.SCALE_EXACT;
 import static java.lang.String.format;
 
+import com.netflix.spinnaker.clouddriver.model.ClusterProvider;
 import com.netflix.spinnaker.clouddriver.model.ServerGroup;
 import com.netflix.spinnaker.kork.exceptions.IntegrationException;
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 
-@Component
 public class ScaleExactResizeStrategy implements ResizeStrategy {
 
   private final ResizeStrategySupport resizeStrategySupport;
@@ -81,19 +80,23 @@ public class ScaleExactResizeStrategy implements ResizeStrategy {
   }
 
   private ServerGroup.Capacity getCurrentCapacity(ResizeStrategy.ResizeCapacityCommand command) {
-    return resizeStrategySupport
-        .clusterProviderForCloud(command.getCloudProvider())
+    Optional<ClusterProvider> clusterProvider =
+        resizeStrategySupport.clusterProviderForCloud(command.getCloudProvider());
+
+    if (!clusterProvider.isPresent()) {
+      throw new IntegrationException(
+          format(
+              "Could not find ClusterProvider for cloud provider '%s'",
+              command.getCloudProvider()));
+    }
+
+    return clusterProvider
         .map(
             it ->
                 it.getServerGroup(
                     command.getCredentials(), command.getLocation(), command.getServerGroupName()))
         .map(ServerGroup::getCapacity)
-        .orElseThrow(
-            () ->
-                new IntegrationException(
-                    format(
-                        "Could not find ClusterProvider for cloud provider '%s'",
-                        command.getCloudProvider())));
+        .orElseGet(ServerGroup.Capacity::new);
   }
 
   private static int orZero(Integer value) {

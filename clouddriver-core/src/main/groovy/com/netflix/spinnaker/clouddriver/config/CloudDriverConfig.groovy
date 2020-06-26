@@ -41,6 +41,9 @@ import com.netflix.spinnaker.clouddriver.core.limits.ServiceLimitConfigurationBu
 import com.netflix.spinnaker.clouddriver.core.provider.CoreProvider
 import com.netflix.spinnaker.clouddriver.core.services.Front50Service
 import com.netflix.spinnaker.clouddriver.deploy.DescriptionAuthorizer
+import com.netflix.spinnaker.clouddriver.deploy.servergroup.ResizeStrategy
+import com.netflix.spinnaker.clouddriver.deploy.servergroup.ResizeStrategySupport
+import com.netflix.spinnaker.clouddriver.deploy.servergroup.ScaleExactResizeStrategy
 import com.netflix.spinnaker.clouddriver.model.ApplicationProvider
 import com.netflix.spinnaker.clouddriver.model.CloudMetricProvider
 import com.netflix.spinnaker.clouddriver.model.ClusterProvider
@@ -74,6 +77,7 @@ import com.netflix.spinnaker.clouddriver.names.NamerRegistry
 import com.netflix.spinnaker.clouddriver.names.NamingStrategy
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperationConverter
 import com.netflix.spinnaker.clouddriver.orchestration.ExceptionClassifier
+import com.netflix.spinnaker.clouddriver.safety.TrafficGuard
 import com.netflix.spinnaker.clouddriver.saga.SagaEvent
 import com.netflix.spinnaker.clouddriver.search.ApplicationSearchProvider
 import com.netflix.spinnaker.clouddriver.search.NoopSearchProvider
@@ -368,5 +372,20 @@ class CloudDriverConfig {
       RefreshScope refreshScope,
       @Value("\${dynamic-config.files}") List<String> dynamicFiles) {
       return new ModifiableFilePropertySources(applicationContext, refreshScope, dynamicFiles)
+  }
+
+  @Bean
+  TrafficGuard trafficGuard(List<ClusterProvider> clusterProviders, Optional<Front50Service> front50Service, Registry registry, DynamicConfigService dynamicConfigService) {
+    return new TrafficGuard(clusterProviders, front50Service, registry, dynamicConfigService);
+  }
+
+  @Bean
+  ResizeStrategySupport resizeStrategySupport(Collection<ClusterProvider> clusterProviders, Registry registry) {
+    return new ResizeStrategySupport(clusterProviders, registry)
+  }
+
+  @Bean
+  ResizeStrategy scaleExactResizeStrategy(ResizeStrategySupport resizeStrategySupport) {
+    return new ScaleExactResizeStrategy(resizeStrategySupport)
   }
 }

@@ -18,6 +18,7 @@ package com.netflix.spinnaker.clouddriver.aws.deploy.validators
 
 import com.netflix.spinnaker.clouddriver.aws.AmazonOperation
 import com.netflix.spinnaker.clouddriver.aws.deploy.description.ResizeAsgDescription
+import com.netflix.spinnaker.clouddriver.aws.deploy.description.ResizeServerGroupDescription
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperations
 import org.springframework.stereotype.Component
 import org.springframework.validation.Errors

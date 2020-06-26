@@ -169,9 +169,9 @@ class AwsProviderConfig {
         synchronizeReservationReportCachingAgentAccounts(awsProvider, allAccounts)
       } else {
         // This caching agent runs across all accounts in one iteration (to maintain consistency).
-        newlyAddedAgents << new ReservationReportCachingAgent(
-          registry, amazonClientProvider, amazonS3DataProvider, allAccounts, objectMapper, reservationReportPool.get(), ctx
-        )
+//        newlyAddedAgents << new ReservationReportCachingAgent(
+//          registry, amazonClientProvider, amazonS3DataProvider, allAccounts, objectMapper, reservationReportPool.get(), ctx
+//        )
       }
     }
 
@@ -189,7 +189,7 @@ class AwsProviderConfig {
       agent instanceof ReservationReportCachingAgent
     }
 
-    if (reservationReportCachingAgent) {
+    if (false && reservationReportCachingAgent) {
       def reservationReportAccounts = reservationReportCachingAgent.accounts
       def oldAccountNames = reservationReportAccounts.collect { it.name }
       def newAccountNames = allAccounts.collect { it.name }

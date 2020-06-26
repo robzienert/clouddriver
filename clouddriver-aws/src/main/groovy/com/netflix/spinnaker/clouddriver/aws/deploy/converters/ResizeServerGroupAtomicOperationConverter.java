@@ -24,8 +24,10 @@ import com.netflix.spinnaker.clouddriver.aws.deploy.ops.ResizeServerGroupAtomicO
 import com.netflix.spinnaker.clouddriver.deploy.servergroup.ResizeStrategy;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperations;
+import com.netflix.spinnaker.clouddriver.safety.TrafficGuard;
 import com.netflix.spinnaker.clouddriver.security.AbstractAtomicOperationsCredentialsSupport;
 import com.netflix.spinnaker.kork.exceptions.SystemException;
+import io.github.resilience4j.retry.RetryRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,12 +49,12 @@ public class ResizeServerGroupAtomicOperationConverter
   @Nullable
   @Override
   public AtomicOperation convertOperation(Map input) {
-    throw new UnsupportedOperationException("Use convertOperation(Object) instead");
+    return convert(convertDescription(input));
   }
 
   @Nullable
   @Override
-  public AtomicOperation convertOperation(Object description) {
+  public AtomicOperation convert(Object description) {
     // TODO(rz): Seems like a lot of this code could be abstracted away.
     if (!(description instanceof ResizeServerGroupDescription)) {
       throw new SystemException(
@@ -66,7 +68,11 @@ public class ResizeServerGroupAtomicOperationConverter
 
     AtomicOperation operation =
         new ResizeServerGroupAtomicOperation(
-            (ResizeServerGroupDescription) description, applicationContext, resizeStrategies);
+            (ResizeServerGroupDescription) description,
+            applicationContext,
+            resizeStrategies,
+            applicationContext.getBean(TrafficGuard.class),
+            applicationContext.getBean(RetryRegistry.class));
 
     applicationContext.getAutowireCapableBeanFactory().autowireBean(operation);
 

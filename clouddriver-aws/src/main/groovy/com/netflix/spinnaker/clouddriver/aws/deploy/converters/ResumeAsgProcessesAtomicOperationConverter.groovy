@@ -34,4 +34,9 @@ class ResumeAsgProcessesAtomicOperationConverter extends AbstractAtomicOperation
     converted.credentials = getCredentialsObject(input.credentials as String)
     converted
   }
+
+  @Override
+  AtomicOperation convert(Object description) {
+    return new ResumeAsgProcessesAtomicOperation((ResumeAsgProcessesDescription) description)
+  }
 }

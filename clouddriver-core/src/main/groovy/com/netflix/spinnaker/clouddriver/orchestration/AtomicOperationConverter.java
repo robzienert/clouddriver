@@ -17,6 +17,7 @@
 
 package com.netflix.spinnaker.clouddriver.orchestration;
 
+import com.netflix.spinnaker.kork.annotations.Alpha;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -33,6 +34,17 @@ public interface AtomicOperationConverter extends VersionedCloudProviderOperatio
    */
   @Nullable
   AtomicOperation convertOperation(Map input);
+
+  /**
+   * Takes a description object and creates an {@link AtomicOperation} instance.
+   *
+   * @param description the atomic operation description object
+   * @return an atomic operation
+   */
+  @Alpha
+  default AtomicOperation convert(Object description) {
+    throw new UnsupportedOperationException("convertDescription(Object) unsupported");
+  }
 
   /**
    * This method takes a Map input and creates a description object, that will often be used by an

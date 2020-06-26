@@ -34,4 +34,9 @@ class SuspendAsgProcessesAtomicOperationConverter extends AbstractAtomicOperatio
     converted.credentials = getCredentialsObject(input.credentials as String)
     converted
   }
+
+  @Override
+  AtomicOperation convert(Object description) {
+    return new SuspendAsgProcessesAtomicOperation((SuspendAsgProcessesDescription) description);
+  }
 }
