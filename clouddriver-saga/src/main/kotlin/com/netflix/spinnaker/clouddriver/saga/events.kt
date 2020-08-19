@@ -16,6 +16,8 @@
 package com.netflix.spinnaker.clouddriver.saga
 
 import com.fasterxml.jackson.annotation.JsonTypeName
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 import com.netflix.spinnaker.clouddriver.event.AbstractSpinnakerEvent
 import com.netflix.spinnaker.clouddriver.event.SpinnakerEvent
 import com.netflix.spinnaker.clouddriver.saga.models.Saga
@@ -70,6 +72,7 @@ class SagaInternalErrorOccurred(
 @JsonTypeName("sagaActionErrorOccurred")
 class SagaActionErrorOccurred(
   val actionName: String,
+  @JsonSerialize(using = ToStringSerializer::class, `as` = String::class)
   val error: Exception,
   val retryable: Boolean
 ) : AbstractSagaEvent()
