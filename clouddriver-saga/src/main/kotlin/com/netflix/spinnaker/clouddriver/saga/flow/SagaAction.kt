@@ -17,6 +17,9 @@ package com.netflix.spinnaker.clouddriver.saga.flow
 
 import com.netflix.spinnaker.clouddriver.saga.SagaCommand
 import com.netflix.spinnaker.clouddriver.saga.SagaEvent
+import com.netflix.spinnaker.clouddriver.saga.models.ActionResource
+import com.netflix.spinnaker.clouddriver.saga.models.ActionResources
+import com.netflix.spinnaker.clouddriver.saga.models.ResourceRef
 import com.netflix.spinnaker.clouddriver.saga.models.Saga
 import com.netflix.spinnaker.kork.annotations.Beta
 
@@ -33,11 +36,17 @@ import com.netflix.spinnaker.kork.annotations.Beta
  */
 @Beta
 interface SagaAction<in T : SagaCommand> {
+
+  /**
+   * Returns a list of required resources that the action will need in the event stream to correctly execute.
+   */
+  fun requiredResources(): List<ResourceRef> = listOf()
+
   /**
    * @param command The input [SagaCommand] to act on
    * @param saga The latest [Saga] state
    */
-  fun apply(command: T, saga: Saga): Result
+  fun apply(command: T, resources: ActionResources, saga: Saga): Result
 
   /**
    * In the event of an exception being raised from [apply], a [SagaAction] can implement custom error handling logic.
@@ -57,9 +66,10 @@ interface SagaAction<in T : SagaCommand> {
    */
   data class Result(
     val nextCommand: SagaCommand?,
+    val resources: List<ActionResource>,
     val events: List<SagaEvent>
   ) {
     constructor() : this(null)
-    constructor(nextCommand: SagaCommand?) : this(nextCommand, listOf())
+    constructor(nextCommand: SagaCommand?) : this(nextCommand, listOf(), listOf())
   }
 }
