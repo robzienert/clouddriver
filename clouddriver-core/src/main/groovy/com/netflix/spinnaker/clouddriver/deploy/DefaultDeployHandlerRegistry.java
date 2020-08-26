@@ -2,11 +2,13 @@ package com.netflix.spinnaker.clouddriver.deploy;
 
 import static java.lang.String.format;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DefaultDeployHandlerRegistry implements DeployHandlerRegistry {
 
-  private List<DeployHandler> deployHandlers;
+  private final List<DeployHandler> deployHandlers;
 
   public DefaultDeployHandlerRegistry(List<DeployHandler> deployHandlers) {
     this.deployHandlers = deployHandlers;
@@ -14,21 +16,13 @@ public class DefaultDeployHandlerRegistry implements DeployHandlerRegistry {
 
   @Override
   public DeployHandler findHandler(final DeployDescription description) {
-    return deployHandlers.stream()
-        .filter(it -> it.handles(description))
+    return Optional.ofNullable(deployHandlers).orElseGet(ArrayList::new).stream()
+        .filter(it -> it != null && it.handles(description))
         .findFirst()
         .orElseThrow(
             () ->
                 new DeployHandlerNotFoundException(
                     format(
-                        "No handler found supportign %s", description.getClass().getSimpleName())));
-  }
-
-  public List<DeployHandler> getDeployHandlers() {
-    return deployHandlers;
-  }
-
-  public void setDeployHandlers(List<DeployHandler> deployHandlers) {
-    this.deployHandlers = deployHandlers;
+                        "No handler found supporting %s", description.getClass().getSimpleName())));
   }
 }
